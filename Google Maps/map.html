@@ -10,6 +10,9 @@
     <script type="text/javascript"
       src="http://maps.googleapis.com/maps/api/js?key=AIzaSyDhZzchxrti7k2vd_dF56I-tNZ7vDbPSFM&sensor=true">
     </script>
+    <script type="text/javascript"
+      src="https://ajax.googleapis.com/ajax/libs/jquery/1.8.2/jquery.min.js">
+    </script>
     <script type="text/javascript">
       function initialize() {
         var mapOptions = {
@@ -21,9 +24,7 @@
             mapOptions);
 
         google.maps.event.addListener(map, 'click', function(event){
-          alert(event.latLng)});
-
-        
+          $.post("http://localhost:8000", {lat: event.latLng.lat(), lng: event.latLng.lng()})});        
       }
     </script>
   </head>
