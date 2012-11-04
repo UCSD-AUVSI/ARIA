@@ -58,11 +58,18 @@
         });
 // somehow get vertex coordinates of polyline and post them in this event 
         $("#coordButton").click(function(event){
-          
+          var data = window.path.getPath().getArray();
+          var coordArray = $.map(data, function(coord){
+            return {
+                      lat: coord.lat(),
+                      lng: coord.lng()
+                    }
+          });
           console.log(window.path.getPath().getArray());
           $.post("http://localhost:5000",
-          window.path.getPath().getArray()
-          );
+          {
+            "path": coordArray//window.path.getPath().getArray()
+          });
 
         });
 
