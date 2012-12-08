@@ -34,21 +34,32 @@ class GoogleMapsPy(object):
             var map;
             var poly;
             var infoWindow;
+            var marker;
             var isContextMenuOpen;
+            var currentPosition;
 
             function initialize() {
+                var mapCenter = new google.maps.LatLng(%d,%d);
+
                 var mapOptions = {
                     zoom: %i,
                     mapTypeId: google.maps.MapTypeId.%s,
-                    center: new google.maps.LatLng(%d,%d),
+                    center: mapCenter,
                     disableDefaultUI: true
                 };
                 map = new google.maps.Map(document.getElementById('map_canvas'),mapOptions);
 
+                currentPosition = mapCenter;
+
+                var markerOptions = {
+                    position: currentPosition
+                };
+                marker = new google.maps.Marker(markerOptions);
+                marker.setMap(map);
+
                 infoWindow = new google.maps.InfoWindow();
                 isContextMenuOpen = false;
-        """ % (self.__zoom, self.__mapTypeId, self.__center.latitude,
-               self.__center.longitude)
+        """ % (self.__center.latitude, self.__center.longitude, self.__zoom, self.__mapTypeId)
 
         if self.__polygonCount > 0:
             i = 1
@@ -119,6 +130,7 @@ class GoogleMapsPy(object):
                 google.maps.event.addListener(map, 'mousemove', statusBarCoordinate);
                 google.maps.event.addListener(poly, 'click', showCoordinate);
                 google.maps.event.addListener(poly, 'rightclick', showContextMenu);
+                google.maps.event.addListener(marker, 'rightclick', showContextMenu);
             } // end of initialize()
 
             function showCoordinate(event) {
@@ -150,7 +162,11 @@ class GoogleMapsPy(object):
                 var position = event.latLng;
                 contextmenu = document.createElement('div');
                 contextmenu.className = 'contextmenu';
-                contextmenu.innerHTML = "<button type=\\"button\\" id=\\"item1\\" class=\\"btn\\">Send Coordinates</button><button type=\\"button\\" id=\\"item2\\" class=\\"btn\\">Circle Here</button><button type=\\"button\\" id=\\"item3\\" class=\\"btn\\">Reset to Default</button><button type=\\"button\\" id=\\"item4\\" class=\\"btn\\">Remove point</button>"
+                contextmenu.innerHTML = "<button type=\\"button\\" id=\\"item1\\" class=\\"btn\\">Send Coordinates</button>";
+                contextmenu.innerHTML += "<button type=\\"button\\" id=\\"item2\\" class=\\"btn\\">Circle Here</button>";
+                contextmenu.innerHTML += "<button type=\\"button\\" id=\\"item3\\" class=\\"btn\\">Refresh</button>";
+                contextmenu.innerHTML += "<button type=\\"button\\" id=\\"item4\\" class=\\"btn\\">Remove point</button>";
+                contextmenu.innerHTML += "<button type=\\"button\\" id=\\"item5\\" class=\\"btn\\">Loiter Here</button>";
                 $(map.getDiv()).append(contextmenu);
 
                 var clickedPosition = latLngToXY(position);
@@ -162,6 +178,7 @@ class GoogleMapsPy(object):
                 isContextMenuOpen = true;
 
                 // add event listeners
+                // SEND COORDINATES
                 $('#item1').click(function() {
                     var data = poly.getPath().getArray();
                     var coordArray = $.map(data, function(coord){
@@ -178,9 +195,13 @@ class GoogleMapsPy(object):
                     contextmenu.style.visibility = "hidden";
                 }); // end item1 event handler
 
+                // CIRCLE HERE
                 $('#item2').click(function() {
                     var scale = 1.5
                     var circlePathCoord = [
+                        // current position
+                        new google.maps.LatLng(currentPosition.lat(), currentPosition.lng()),
+
                         // top right corner
                         new google.maps.LatLng(position.lat()+scale, position.lng()+scale),
 
@@ -203,14 +224,18 @@ class GoogleMapsPy(object):
                         new google.maps.LatLng(position.lat()+scale, position.lng()+scale)
                     ];
                     poly.setPath(circlePathCoord);
+                    currentPosition = circlePathCoord[1];
+                    marker.setPosition(circlePathCoord[1]);
 
                     contextmenu.style.visibility = "hidden";
                 }); // end #item2 event handler
 
+                // REFRESH PAGE
                 $('#item3').click(function() {
                     location.reload();
                 }); // end #item3 event handler
 
+                // DELETE POINT
                 $('#item4').click(function() {
                     var path = poly.getPath();
                     var index = path.getArray().indexOf(position);
@@ -219,7 +244,25 @@ class GoogleMapsPy(object):
                     else
                         alert('point not in path');
                     contextmenu.style.visibility = "hidden";
-                });
+                }); // end of #item4 event handler
+
+                // LOITER HERE
+                $('#item5').click(function() {
+                    if(position.equals(currentPosition)) {
+                        marker.setPosition(position);
+                        currentPosition = position;
+                    }
+                    else {
+                        var tmpPath = [
+                            new google.maps.LatLng(currentPosition.lat(), currentPosition.lng()),
+                            new google.maps.LatLng(position.lat(), position.lng())
+                        ];
+                        poly.setPath(tmpPath);
+                        marker.setPosition(position);
+                        currentPosition = position;
+                    }
+                    contextmenu.style.visibility = "hidden";
+                }); //  end of #item5 event handler
 
                 contextmenu.style.visibility = "visible";
             }
