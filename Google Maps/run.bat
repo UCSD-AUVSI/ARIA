@@ -1,3 +1,8 @@
-cd "C:\Users\NumberSix\Documents\GitHub\GoogleMapsPy\src\"
-python RunUI.py
-pause
+CD %CD%/SRC
+CALL :GETMYSWITCH %CMDCMDLINE%
+PYTHON RUNUI.PY
+IF /I "%MYSWITCH%" == "/C" PAUSE
+IF /I NOT "%MYSWITCH%" == "/C" CD ..
+
+:GETMYSWITCH
+SET MYSWITCH=%2
