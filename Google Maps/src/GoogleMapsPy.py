@@ -167,6 +167,7 @@ class GoogleMapsPy(object):
                 contextmenu.innerHTML += "<button type=\\"button\\" id=\\"item3\\" class=\\"btn\\">Refresh</button>";
                 contextmenu.innerHTML += "<button type=\\"button\\" id=\\"item4\\" class=\\"btn\\">Remove point</button>";
                 contextmenu.innerHTML += "<button type=\\"button\\" id=\\"item5\\" class=\\"btn\\">Loiter Here</button>";
+                contextmenu.innerHTML += "<button type=\\"button\\" id=\\"item6\\" class=\\"btn\\">Clear all waypoints</button>";
                 $(map.getDiv()).append(contextmenu);
 
                 var clickedPosition = latLngToXY(position);
@@ -263,6 +264,13 @@ class GoogleMapsPy(object):
                     }
                     contextmenu.style.visibility = "hidden";
                 }); //  end of #item5 event handler
+				
+                // CLEAR ALL WAYPOINTS
+                $('#item6').click(function() {
+					empty_path = [];
+					poly.setPath(empty_path);
+                    contextmenu.style.visibility = "hidden";
+                }); // end of #item6 event handler
 
                 contextmenu.style.visibility = "visible";
             }
