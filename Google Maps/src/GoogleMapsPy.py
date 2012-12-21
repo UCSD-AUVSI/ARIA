@@ -36,8 +36,10 @@ class GoogleMapsPy(object):
             var infoWindow;
             var marker;
             var isContextMenuOpen;
+            var isInfoWindowOpen;
             var currentPosition;
             var altitudeArray;
+            var typeArray;
 
             function initialize() {
                 var mapCenter = new google.maps.LatLng(%d,%d);
@@ -51,6 +53,8 @@ class GoogleMapsPy(object):
                 map = new google.maps.Map(document.getElementById('map_canvas'),mapOptions);
 
                 altitudeArray = [];
+                typeArray = [];
+
                 currentPosition = mapCenter;
 
                 var markerOptions = {
@@ -130,30 +134,69 @@ class GoogleMapsPy(object):
         self.__jsCode += """
                 // Makes sure altitdue array and path array are in sync
                 google.maps.event.addListener(poly.getPath(), 'insert_at', function(index) {
-                    if(index == (poly.getPath().getLength() - 1))
+                    if(index == 0) {
                         altitudeArray.push(index);
+                        typeArray.push("Takeoff");  // set to Takeoff if first element
+                    }
+                    else if(index == (poly.getPath().getLength() - 1)) {
+                        altitudeArray.push(index);
+                        typeArray.push("Land"); // set to Land if last element
+                        // set 2nd to last element to Waypoint
+                        if((typeArray.length-2) > 0)
+                            typeArray[typeArray.length-2] = "Waypoint";
+                    }
                     else {
-                        var tmp = [];
+                        var aTmp = [];
+                        var tTmp = [];
+
+                        // Altitude Array
                         for(var i = 0; i < index; i++)
-                            tmp[i] = altitudeArray[i];
-                        tmp[index] = index;
+                            aTmp[i] = altitudeArray[i];
+                        aTmp[index] = index;
                         for(var i = index+1; i <= altitudeArray.length; i++)
-                            tmp[i] = altitudeArray[i-1];
-                        altitudeArray = tmp;
+                            aTmp[i] = altitudeArray[i-1];
+                        altitudeArray = aTmp;
+
+                        // Type Array
+                        for(var i = 0; i < index; i++)
+                            tTmp[i] = typeArray[i];
+                        tTmp[index] = "Waypoint";
+                        for(var i = index+1; i <= typeArray.length; i++)
+                            tTmp[i] = typeArray[i-1];
+                        typeArray = tTmp;
                     }
                 });
+                /*
+                ** NOTE: google maps api decreases length of mvc array before 'remove_at' event gets called
+                */
                 google.maps.event.addListener(poly.getPath(), 'remove_at', function(index) {
-                    if(index == 0)
-                        altitudeArray.shift();
-                    else if(index == (poly.getPath().getLength() - 1))
-                        altitudeArray.pop();
+                    if(index == 0) {
+                        altitudeArray.shift();  // remove first element
+                        typeArray.shift();  // remove first element
+                        typeArray[0] = "Takeoff";   // set first element to Takeoff
+                    }
+                    else if(index == poly.getPath().getLength()) {
+                        altitudeArray.pop(); // remove last element
+                        typeArray.pop();    // remove last element
+                        typeArray[typeArray.length-1] = "Land"; // set last element to Land
+                    }
                     else {
-                        var tmp = [];
+                        var aTmp = [];
+                        var tTmp = [];
+
+                        // Altitude Array
                         for(var i = 0; i < index; i++)
-                            tmp[i] = altitudeArray[i];
+                            aTmp[i] = altitudeArray[i];
                         for(var i = index+1; i < altitudeArray.length; i++)
-                            tmp[i-1] = altitudeArray[i];
-                        altitudeArray = tmp;
+                            aTmp[i-1] = altitudeArray[i];
+                        altitudeArray = aTmp;
+
+                        // Type Array
+                        for(var i = 0; i < index; i++)
+                            tTmp[i] = typeArray[i];
+                        for(var i = index+1; i < typeArray.length; i++)
+                            tTmp[i-1] = typeArray[i];
+                        typeArray = tTmp;
                     }
                 });
                 google.maps.event.addListener(poly.getPath(), 'set_at', function(event) {
@@ -176,6 +219,14 @@ class GoogleMapsPy(object):
                 var message = "<label>Longitude:</label><input id=\\"latBox\\" class=\\"inputBox\\" type=\\"text\\" value=\\"" + event.latLng.lat() + "\\"/><br />";
                 message += "<label>Latitude:</label><input id=\\"lngBox\\" class=\\"inputBox\\" type=\\"text\\" value=\\"" + event.latLng.lng() + "\\"/><br />";
                 message += "<label>Altitude:</label><input id=\\"altBox\\" class=\\"inputBox\\" type=\\"text\\" value=\\"" + altitudeArray[index] + "\\"/><br />";
+
+                if(typeArray[index] == "Takeoff")
+                    message += "<label>Type:</label><select><option value=\\"waypoint\\">Waypoint</option><option value=\\"takeoff\\" selected=\\"selected\\">Takeoff</option><option value=\\"land\\">Land</option></select><br />";
+                else if(typeArray[index] == "Waypoint")
+                    message += "<label>Type:</label><select><option value=\\"waypoint\\" selected=\\"selected\\">Waypoint</option><option value=\\"takeoff\\">Takeoff</option><option value=\\"land\\">Land</option></select><br />";
+                else if(typeArray[index] == "Land")
+                    message += "<label>Type:</label><select><option value=\\"waypoint\\">Waypoint</option><option value=\\"takeoff\\">Takeoff</option><option value=\\"land\\" selected=\\"selected\\">Land</option></select><br />";
+
                 infoWindow.setContent(message);
                 infoWindow.setPosition(event.latLng);
                 infoWindow.open(map);
@@ -189,12 +240,27 @@ class GoogleMapsPy(object):
                         infoWindow.setPosition(newPos);
                     }
                 });
+
+                $('select').change(function() {
+                    var optionSelected = "";
+                    $('select option:selected').each(function() {
+                        optionSelected += $(this).text();
+                    });
+                    typeArray[index] = optionSelected;
+                });
+
+                isInfoWindowOpen = true;
             }
 
             function addPoint(event) {
                 if(isContextMenuOpen) {
                     $('.contextmenu').remove();
                     isContextMenuOpen = false;
+                    return;
+                }
+                if(isInfoWindowOpen) {
+                    infoWindow.close();
+                    isInfoWindowOpen = false;
                     return;
                 }
                 // All arrays are passed by reference in js

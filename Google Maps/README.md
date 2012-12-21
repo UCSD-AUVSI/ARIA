@@ -15,11 +15,11 @@ The Javascript code produced by GoogleMapsPy can:
 * send information of path over local server to Python interface using Flask and from there send to MavLink
 * reset map to its default (default is the map produced by Python interface)
 * deleting specific points on the path
-* editing position and altitdue of each point on the path
+* editing position, altitude, and type of each point on the path
 * display GPS coordinate of position of mouse in status bar
 
 TODO
-* Add types (waypoint, takeoff, land, loiter), duration, and radius (circle only)
+* Add duration, and radius (circle only)
   * Add these new information to data sent over local network
 * Add "Send Data" to Python interface
   * will send data received from Javascript to Mavlink
