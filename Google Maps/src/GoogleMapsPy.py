@@ -173,12 +173,22 @@ class GoogleMapsPy(object):
 
             function showCoordinate(event) {
                 var index = poly.getPath().getArray().indexOf(event.latLng);
-                var message = "Longitude: " + event.latLng.lat() + "<br />";
-                message += "Latitude: " + event.latLng.lng() + "<br />";
-                message += "Altitude: " + altitudeArray[index] + "<br />";
+                var message = "<label>Longitude:</label><input id=\\"latBox\\" class=\\"inputBox\\" type=\\"text\\" value=\\"" + event.latLng.lat() + "\\"/><br />";
+                message += "<label>Latitude:</label><input id=\\"lngBox\\" class=\\"inputBox\\" type=\\"text\\" value=\\"" + event.latLng.lng() + "\\"/><br />";
+                message += "<label>Altitude:</label><input id=\\"altBox\\" class=\\"inputBox\\" type=\\"text\\" value=\\"" + altitudeArray[index] + "\\"/><br />";
                 infoWindow.setContent(message);
                 infoWindow.setPosition(event.latLng);
                 infoWindow.open(map);
+
+                $('.inputBox').bind('keypress', function(event) {
+                    // enter key is pressed
+                    if(event.keyCode == 13) {
+                        var newPos = new google.maps.LatLng($('#latBox').val(), $('#lngBox').val())
+                        poly.getPath().setAt(index, newPos);
+                        altitudeArray[index] = $('#altBox').val();
+                        infoWindow.setPosition(newPos);
+                    }
+                });
             }
 
             function addPoint(event) {
