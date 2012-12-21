@@ -37,6 +37,7 @@ class GoogleMapsPy(object):
             var marker;
             var isContextMenuOpen;
             var currentPosition;
+            var altitudeArray;
 
             function initialize() {
                 var mapCenter = new google.maps.LatLng(%d,%d);
@@ -49,6 +50,7 @@ class GoogleMapsPy(object):
                 };
                 map = new google.maps.Map(document.getElementById('map_canvas'),mapOptions);
 
+                altitudeArray = [];
                 currentPosition = mapCenter;
 
                 var markerOptions = {
@@ -121,10 +123,46 @@ class GoogleMapsPy(object):
                 poly = new google.maps.Polyline(polyOptions);
                 poly.setEditable(%s);
                 poly.setMap(map);
+                poly.binder = new MVCArrayBinder(poly.getPath());
             """ % (self.__polyLine.strokeColor, self.__polyLine.strokeWeight,
                    self.__polyLine.strokeOpacity, str(self.__polyLine.editable).lower())
 
         self.__jsCode += """
+                // Makes sure altitdue array and path array are in sync
+                google.maps.event.addListener(poly.getPath(), 'insert_at', function(index) {
+                    if(index == (poly.getPath().getLength() - 1))
+                        altitudeArray.push(index);
+                    else {
+                        var tmp = [];
+                        for(var i = 0; i < index; i++)
+                            tmp[i] = altitudeArray[i];
+                        tmp[index] = index;
+                        for(var i = index+1; i <= altitudeArray.length; i++)
+                            tmp[i] = altitudeArray[i-1];
+                        altitudeArray = tmp;
+                    }
+                });
+                google.maps.event.addListener(poly.getPath(), 'remove_at', function(index) {
+                    if(index == 0)
+                        altitudeArray.shift();
+                    else if(index == (poly.getPath().getLength() - 1))
+                        altitudeArray.pop();
+                    else {
+                        var tmp = [];
+                        for(var i = 0; i < index; i++)
+                            tmp[i] = altitudeArray[i];
+                        for(var i = index+1; i < altitudeArray.length; i++)
+                            tmp[i-1] = altitudeArray[i];
+                        altitudeArray = tmp;
+                    }
+                });
+                google.maps.event.addListener(poly.getPath(), 'set_at', function(event) {
+                    /*
+                    ** PLACE HOLDER
+                    ** CODE HERE
+                    */
+                });
+
                 google.maps.event.addListener(map, 'click', addPoint);
                 google.maps.event.addListener(map, 'rightclick', showContextMenu);
                 google.maps.event.addListener(map, 'mousemove', statusBarCoordinate);
@@ -134,8 +172,10 @@ class GoogleMapsPy(object):
             } // end of initialize()
 
             function showCoordinate(event) {
+                var index = poly.getPath().getArray().indexOf(event.latLng);
                 var message = "Longitude: " + event.latLng.lat() + "<br />";
                 message += "Latitude: " + event.latLng.lng() + "<br />";
+                message += "Altitude: " + altitudeArray[index] + "<br />";
                 infoWindow.setContent(message);
                 infoWindow.setPosition(event.latLng);
                 infoWindow.open(map);
@@ -184,13 +224,14 @@ class GoogleMapsPy(object):
                     var coordArray = $.map(data, function(coord){
                         return {
                             lat: coord.lat(),
-                            lng: coord.lng()
+                            lng: coord.lng(),
+                            type: "waypoint"
                         }
                     });
                     console.log(poly.getPath().getArray());
                     $.post("http://localhost:5000",
                     {
-                        "path": coordArray
+                        "data": coordArray
                     });
                     contextmenu.style.visibility = "hidden";
                 }); // end item1 event handler
@@ -281,6 +322,23 @@ class GoogleMapsPy(object):
                 );
 
                 return offset;
+            }
+
+            function MVCArrayBinder(pathArray) {
+                this.array_ = pathArray;
+            }
+            MVCArrayBinder.prototype = new google.maps.MVCObject();
+            MVCArrayBinder.prototype.get = function(key) {
+                if(!isNaN(parseInt(key)))
+                    return this.array_.getAt(parseInt(key));
+                else
+                    return this.array_.get(key);
+            }
+            MVCArrayBinder.prototype.set = function(key, val) {
+                if(!isNan(parseInt(key)))
+                    this.array_.setAt(parseInt(key), val);
+                else
+                    this.array_.set(key, val);
             }
             """
 

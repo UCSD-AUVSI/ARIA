@@ -44,10 +44,3 @@ if __name__ == '__main__':
 
     uiThread.start()
     serverThread.start()
-
-    # app = QtGui.QApplication(sys.argv)
-    # MainWindow = QtGui.QMainWindow()
-    # ui = Ui_MainWindow()
-    # ui.setupUi(MainWindow, mapObject.getHtml())
-    # MainWindow.show()
-    # sys.exit(app.exec_())
