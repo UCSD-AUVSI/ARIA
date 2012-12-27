@@ -40,6 +40,7 @@ class GoogleMapsPy(object):
             var currentPosition;
             var altitudeArray;
             var typeArray;
+            var durArray;
 
             function initialize() {
                 var mapCenter = new google.maps.LatLng(%d,%d);
@@ -54,6 +55,7 @@ class GoogleMapsPy(object):
 
                 altitudeArray = [];
                 typeArray = [];
+                durArray = [];
 
                 currentPosition = mapCenter;
 
@@ -136,18 +138,22 @@ class GoogleMapsPy(object):
                 google.maps.event.addListener(poly.getPath(), 'insert_at', function(index) {
                     if(index == 0) {
                         altitudeArray.push(index);
+                        durArray.push(0);
                         typeArray.push("Takeoff");  // set to Takeoff if first element
                     }
                     else if(index == (poly.getPath().getLength() - 1)) {
                         altitudeArray.push(index);
+                        durArray.push(0);
                         typeArray.push("Land"); // set to Land if last element
                         // set 2nd to last element to Waypoint
                         if((typeArray.length-2) > 0)
-                            typeArray[typeArray.length-2] = "Waypoint";
+                            if(typeArray[typeArray.length-2] == "Land")
+                                typeArray[typeArray.length-2] = "Waypoint";
                     }
                     else {
                         var aTmp = [];
                         var tTmp = [];
+                        var dTmp = [];
 
                         // Altitude Array
                         for(var i = 0; i < index; i++)
@@ -164,6 +170,14 @@ class GoogleMapsPy(object):
                         for(var i = index+1; i <= typeArray.length; i++)
                             tTmp[i] = typeArray[i-1];
                         typeArray = tTmp;
+
+                        // Duration Array
+                        for(var i = 0; i < index; i++)
+                            dTmp[i] = durArray[i];
+                        dTmp[index] = 0;
+                        for(var i = index+1; i <= durArray.length; i++)
+                            dTmp[i] = durArray[i-1];
+                        durArray = tTmp;
                     }
                 });
                 /*
@@ -172,17 +186,20 @@ class GoogleMapsPy(object):
                 google.maps.event.addListener(poly.getPath(), 'remove_at', function(index) {
                     if(index == 0) {
                         altitudeArray.shift();  // remove first element
+                        durArray.shift();
                         typeArray.shift();  // remove first element
                         typeArray[0] = "Takeoff";   // set first element to Takeoff
                     }
                     else if(index == poly.getPath().getLength()) {
                         altitudeArray.pop(); // remove last element
+                        durArray.pop();
                         typeArray.pop();    // remove last element
                         typeArray[typeArray.length-1] = "Land"; // set last element to Land
                     }
                     else {
                         var aTmp = [];
                         var tTmp = [];
+                        var dTmp = [];
 
                         // Altitude Array
                         for(var i = 0; i < index; i++)
@@ -197,10 +214,18 @@ class GoogleMapsPy(object):
                         for(var i = index+1; i < typeArray.length; i++)
                             tTmp[i-1] = typeArray[i];
                         typeArray = tTmp;
+
+                        // Duration Array
+                        for(var i = 0; i < index; i++)
+                            dTmp[i] = durArray[i];
+                        for(var i = index+1; i < durArray.length; i++)
+                            dTmp[i-1] = durArray[i];
+                        durArray = dTmp;
                     }
                 });
                 google.maps.event.addListener(poly.getPath(), 'set_at', function(event) {
                     /*
+                    ** THIS EVENT IS CALLED WHEN THE UNDO BUTTON IS PRESSED
                     ** PLACE HOLDER
                     ** CODE HERE
                     */
@@ -221,11 +246,35 @@ class GoogleMapsPy(object):
                 message += "<label>Altitude:</label><input id=\\"altBox\\" class=\\"inputBox\\" type=\\"text\\" value=\\"" + altitudeArray[index] + "\\"/><br />";
 
                 if(typeArray[index] == "Takeoff")
-                    message += "<label>Type:</label><select><option value=\\"waypoint\\">Waypoint</option><option value=\\"takeoff\\" selected=\\"selected\\">Takeoff</option><option value=\\"land\\">Land</option></select><br />";
+                    message = message + "<label>Type:</label>" + 
+                            "<select>" + 
+                            "<option value=\\"takeoff\\" selected=\\"selected\\">Takeoff</option>" + 
+                            "<option value=\\"waypoint\\">Waypoint</option>" + 
+                            "<option value=\\"loiter\\">Loiter</option>" + 
+                            "<option value=\\"land\\">Land</option></select><br />";
                 else if(typeArray[index] == "Waypoint")
-                    message += "<label>Type:</label><select><option value=\\"waypoint\\" selected=\\"selected\\">Waypoint</option><option value=\\"takeoff\\">Takeoff</option><option value=\\"land\\">Land</option></select><br />";
+                    message = message + "<label>Type:</label>" + 
+                            "<select>" + 
+                            "<option value=\\"takeoff\\">Takeoff</option>" + 
+                            "<option value=\\"waypoint\\" selected=\\"selected\\">Waypoint</option>" + 
+                            "<option value=\\"loiter\\">Loiter</option>" + 
+                            "<option value=\\"land\\">Land</option></select><br />";
+                else if(typeArray[index] == "Loiter")
+                    message = message + "<label>Type:</label>" + 
+                            "<select>" + 
+                            "<option value=\\"takeoff\\">Takeoff</option>" + 
+                            "<option value=\\"waypoint\\">Waypoint</option>" + 
+                            "<option value=\\"loiter\\" selected=\\"selected\\">Loiter</option>" + 
+                            "<option value=\\"land\\">Land</option></select><br />" + 
+                            "<label>Duration:</label>" +
+                            "<input id=\\"durBox\\" class=\\"inputBox\\" type=\\"text\\" value=\\"" + durArray[index] + "\\" /><br />";
                 else if(typeArray[index] == "Land")
-                    message += "<label>Type:</label><select><option value=\\"waypoint\\">Waypoint</option><option value=\\"takeoff\\">Takeoff</option><option value=\\"land\\" selected=\\"selected\\">Land</option></select><br />";
+                    message = message + "<label>Type:</label>" + 
+                            "<select>" + 
+                            "<option value=\\"takeoff\\">Takeoff</option>" + 
+                            "<option value=\\"waypoint\\">Waypoint</option>" + 
+                            "<option value=\\"loiter\\">Loiter</option>" + 
+                            "<option value=\\"land\\" selected=\\"selected\\">Land</option></select><br />";
 
                 infoWindow.setContent(message);
                 infoWindow.setPosition(event.latLng);
@@ -237,7 +286,10 @@ class GoogleMapsPy(object):
                         var newPos = new google.maps.LatLng($('#latBox').val(), $('#lngBox').val())
                         poly.getPath().setAt(index, newPos);
                         altitudeArray[index] = $('#altBox').val();
+                        if(typeArray[index] == "Loiter")
+                            durArray[index] = $('#durBox').val();
                         infoWindow.setPosition(newPos);
+                        alert("values updated");
                     }
                 });
 
@@ -246,7 +298,10 @@ class GoogleMapsPy(object):
                     $('select option:selected').each(function() {
                         optionSelected += $(this).text();
                     });
+                    if(optionSelected == "Loiter")
+                        infoWindow.close();
                     typeArray[index] = optionSelected;
+                    durArray[index] = 0;
                 });
 
                 isInfoWindowOpen = true;
@@ -282,7 +337,6 @@ class GoogleMapsPy(object):
                 contextmenu.innerHTML += "<button type=\\"button\\" id=\\"item2\\" class=\\"btn\\">Circle Here</button>";
                 contextmenu.innerHTML += "<button type=\\"button\\" id=\\"item3\\" class=\\"btn\\">Refresh</button>";
                 contextmenu.innerHTML += "<button type=\\"button\\" id=\\"item4\\" class=\\"btn\\">Remove point</button>";
-                contextmenu.innerHTML += "<button type=\\"button\\" id=\\"item5\\" class=\\"btn\\">Loiter Here</button>";
                 $(map.getDiv()).append(contextmenu);
 
                 var clickedPosition = latLngToXY(position);
@@ -362,24 +416,6 @@ class GoogleMapsPy(object):
                         alert('point not in path');
                     contextmenu.style.visibility = "hidden";
                 }); // end of #item4 event handler
-
-                // LOITER HERE
-                $('#item5').click(function() {
-                    if(position.equals(currentPosition)) {
-                        marker.setPosition(position);
-                        currentPosition = position;
-                    }
-                    else {
-                        var tmpPath = [
-                            new google.maps.LatLng(currentPosition.lat(), currentPosition.lng()),
-                            new google.maps.LatLng(position.lat(), position.lng())
-                        ];
-                        poly.setPath(tmpPath);
-                        marker.setPosition(position);
-                        currentPosition = position;
-                    }
-                    contextmenu.style.visibility = "hidden";
-                }); //  end of #item5 event handler
 
                 contextmenu.style.visibility = "visible";
             }
