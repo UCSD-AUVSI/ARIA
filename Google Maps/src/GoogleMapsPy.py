@@ -379,15 +379,16 @@ class GoogleMapsPy(object):
                 // add event listeners
                 // SEND COORDINATES
                 $('#item1').click(function() {
-                    var data = poly.getPath().getArray();
-                    var coordArray = $.map(data, function(coord){
-                        return {
-                            lat: coord.lat(),
-                            lng: coord.lng(),
-                            type: "waypoint"
-                        }
-                    });
-                    console.log(poly.getPath().getArray());
+                    var coordArray = [];
+                    for(var i = 0; i < poly.getPath().getLength(); i++) {
+                        coordArray.push({
+                            lat: poly.getPath().getAt(i).lat(),
+                            lng: poly.getPath().getAt(i).lng(),
+                            alt: altitudeArray[i],
+                            typ: typeArray[i],
+                            dur: durArray[i]
+                        });
+                    }
                     $.post("http://localhost:5000",
                     {
                         "data": coordArray

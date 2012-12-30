@@ -14,21 +14,19 @@ def getFlightPlan():
         lat = "data[" + str(index) +"][lat]"
         lng = "data["+ str(index) +"][lng]"
         typeField = "data[" + str(index) + "][type]"
-        if lat in request.form.keys() and lng in request.form.keys():
+        altitude = "data[" + str(index) + "][alt]"
+        duration = "data[" + str(index) + "][dur]"
+        if lat in request.form.keys():
             list += [{
                 "latitude": request.form[lat],
                 "longitude": request.form[lng],
-                "type": request.form[typeField]
+                "altitude" : request.form[alt],
+                "type": request.form[typeField],
+                "duration": request.form[duration]
             }]
         else:
             break
         index += 1
-
-    for dictItem in list:
-        print "longitude : " + str(dictItem["longitude"])
-        print "latitude : " + str(dictItem["latitude"])
-        print "type : " + str(dictItem["type"])
-        print
 
     return list
 
