@@ -298,8 +298,37 @@ class GoogleMapsPy(object):
                     $('select option:selected').each(function() {
                         optionSelected += $(this).text();
                     });
-                    if(optionSelected == "Loiter")
+                    if(optionSelected == "Loiter") {
                         infoWindow.close();
+                        message = "<label>Longitude:</label>" + 
+                                "<input id=\\"latBox\\" class=\\"inputBox\\" type=\\"text\\" value=\\"" + event.latLng.lat() + "\\"/><br />";
+                        message = message + "<label>Latitude:</label>" + 
+                                "<input id=\\"lngBox\\" class=\\"inputBox\\" type=\\"text\\" value=\\"" + event.latLng.lng() + "\\"/><br />";
+                        message = message + "<label>Altitude:</label>" + 
+                                "<input id=\\"altBox\\" class=\\"inputBox\\" type=\\"text\\" value=\\"" + altitudeArray[index] + "\\"/><br />";
+                        message = message + "<label>Type:</label>" + 
+                                "<select>" + 
+                                "<option value=\\"takeoff\\">Takeoff</option>" + 
+                                "<option value=\\"waypoint\\">Waypoint</option>" + 
+                                "<option value=\\"loiter\\" selected=\\"selected\\">Loiter</option>" + 
+                                "<option value=\\"land\\">Land</option></select><br />" + 
+                                "<label>Duration:</label>" +
+                                "<input id=\\"durBox\\" class=\\"inputBox\\" type=\\"text\\" value=\\"" + durArray[index] + "\\" /><br />";
+                        infoWindow.setContent(message);
+                        infoWindow.open(map);
+                        $('.inputBox').bind('keypress', function(event) {
+                            // enter key is pressed
+                            if(event.keyCode == 13) {
+                                var newPos = new google.maps.LatLng($('#latBox').val(), $('#lngBox').val())
+                                poly.getPath().setAt(index, newPos);
+                                altitudeArray[index] = $('#altBox').val();
+                                if(typeArray[index] == "Loiter")
+                                    durArray[index] = $('#durBox').val();
+                                infoWindow.setPosition(newPos);
+                                alert("values updated");
+                            }
+                        });
+                    }
                     typeArray[index] = optionSelected;
                     durArray[index] = 0;
                 });
