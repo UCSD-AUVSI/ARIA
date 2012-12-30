@@ -19,8 +19,7 @@ The Javascript code produced by GoogleMapsPy can:
 * display GPS coordinate of position of mouse in status bar
 
 TODO
-* Add duration, and radius (circle only)
-  * Add these new information to data sent over local network
+* Add type, altitude, and duration to info sent over local network
 * Add "Send Data" to Python interface
   * will send data received from Javascript to Mavlink
 
@@ -28,5 +27,7 @@ Dependencies
 ------------
 
 Python 2.7 
+
 Flask v.0.9 
+
 PyQt 4.9.5-1 
