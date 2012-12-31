@@ -11,6 +11,7 @@ def getFlightPlan():
     index = 0
 
     while True:
+
         lat = "data[" + str(index) +"][lat]"
         lng = "data["+ str(index) +"][lng]"
         typeField = "data[" + str(index) + "][type]"
@@ -20,13 +21,21 @@ def getFlightPlan():
             list += [{
                 "latitude": request.form[lat],
                 "longitude": request.form[lng],
-                "altitude" : request.form[alt],
+                "altitude" : request.form[altitude],
                 "type": request.form[typeField],
                 "duration": request.form[duration]
             }]
         else:
             break
         index += 1
+
+    for coordDict in list:
+        print "latitude: " + str(coordDict["latitude"])
+        print "longitude: " + str(coordDict["longitude"])
+        print "altitude: " + str(coordDict["altitude"])
+        print "type: " + str(coordDict["type"])
+        print "duration: " + str(coordDict["duration"])
+        print
 
     return list
 

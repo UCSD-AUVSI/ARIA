@@ -385,7 +385,7 @@ class GoogleMapsPy(object):
                             lat: poly.getPath().getAt(i).lat(),
                             lng: poly.getPath().getAt(i).lng(),
                             alt: altitudeArray[i],
-                            typ: typeArray[i],
+                            type: typeArray[i],
                             dur: durArray[i]
                         });
                     }
