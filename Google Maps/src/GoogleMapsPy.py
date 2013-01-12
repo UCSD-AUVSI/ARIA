@@ -129,6 +129,26 @@ class GoogleMapsPy(object):
                 poly = new google.maps.Polyline(polyOptions);
                 poly.setEditable(%s);
                 poly.setMap(map);
+
+                // initialize altitude array if path is preset
+                for(var i = 0; i < poly.getPath().getLength(); i++) {
+                    altitudeArray.push(i)       // TODO: properly set altitude
+                }
+                // initialize type array if path is preset
+                for(var i = 0; i < poly.getPath().getLength(); i++) {
+                    if(i == 0)
+                        typeArray.push("Takeoff");
+                    else if(i == (poly.getPath().getLength() - 1))
+                        typeArray.push("Land");
+                    else
+                        typeArray.push("Waypoint");
+                }
+                // initialize duration array if path is preset
+                for(var i = 0; i < poly.getPath().getLength(); i++) {
+                    durArray.push(0);
+                }
+
+                // TODO: binder may not be needed
                 poly.binder = new MVCArrayBinder(poly.getPath());
             """ % (self.__polyLine.strokeColor, self.__polyLine.strokeWeight,
                    self.__polyLine.strokeOpacity, str(self.__polyLine.editable).lower())
@@ -137,12 +157,12 @@ class GoogleMapsPy(object):
                 // Makes sure altitdue array and path array are in sync
                 google.maps.event.addListener(poly.getPath(), 'insert_at', function(index) {
                     if(index == 0) {
-                        altitudeArray.push(index);
+                        altitudeArray.push(index);      // TODO: properly set altitude
                         durArray.push(0);
                         typeArray.push("Takeoff");  // set to Takeoff if first element
                     }
                     else if(index == (poly.getPath().getLength() - 1)) {
-                        altitudeArray.push(index);
+                        altitudeArray.push(index);      // TODO: properly set altitude
                         durArray.push(0);
                         typeArray.push("Land"); // set to Land if last element
                         // set 2nd to last element to Waypoint
@@ -158,7 +178,7 @@ class GoogleMapsPy(object):
                         // Altitude Array
                         for(var i = 0; i < index; i++)
                             aTmp[i] = altitudeArray[i];
-                        aTmp[index] = index;
+                        aTmp[index] = index;        // TODO: properly set altitude
                         for(var i = index+1; i <= altitudeArray.length; i++)
                             aTmp[i] = altitudeArray[i-1];
                         altitudeArray = aTmp;
@@ -466,6 +486,7 @@ class GoogleMapsPy(object):
                 return offset;
             }
 
+            // TODO: binder may not be needed
             function MVCArrayBinder(pathArray) {
                 this.array_ = pathArray;
             }

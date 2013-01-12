@@ -27,12 +27,12 @@ if __name__ == '__main__':
     centerMap = Coordinate(0,0)
     coordList = [Coordinate(0,0), Coordinate(10,-10), Coordinate(10,10)]
 
-    mapObject = GoogleMapsPy(centerMap, 5, 'ROADMAP')
+    mapObject = GoogleMapsPy(centerMap, 5, 'ROADMAP', coordList)
 
     #Create polygons
-    # coordList2 = [Coordinate(0,0), Coordinate(10,-10), Coordinate(10,10)]
-    # poly2 = Polygon(coordList2)
-    # mapObject.createPolygon(poly2)
+    coordList2 = [Coordinate(0,0), Coordinate(10,-10), Coordinate(10,10)]
+    poly2 = Polygon(coordList2)
+    mapObject.createPolygon(poly2)
 
     cwd = os.curdir
     with open(cwd+'/static/gmaps.html', 'w') as file:
