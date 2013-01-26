@@ -12,14 +12,15 @@ class PyGmap(object):
     SHOW_PATH = True
     HIDE_PATH = False
 
-    def __init__(self, map_, path=None):
+    def __init__(self, map_, api_key, path=None):
         """
         options is dict of mapOptions (should work for most mapOptions from api)
         path is array of LatLng for preset path
         """
+        self._api_key = api_key
         self._map = map_
-        self._path = path
-        self._display_path = True
+        self._polyline = path
+        self._display_polyline = True
         self._polygon_count = 0
         self._polygon_list = []
     
@@ -28,18 +29,17 @@ class PyGmap(object):
         writes javascript and html to files
         file names can be passed in as parameters
         """
-       # cwd = os.curdir
-       # with open(cwd+'/static/'+html_file, 'w') as file:
-       #     file.write(self._get_html())
-       # with open(cwd+'/static/'+js_file, 'w') as file:
-       #     file.write(self._get_js())
-        print self._get_js()
+        cwd = os.curdir
+        with open(cwd+'/static/'+html_file, 'w') as file:
+            file.write(self._get_html())
+        with open(cwd+'/static/'+js_file, 'w') as file:
+            file.write(self._get_js())
 
     def toggle_display_path(self, switch):
         """
         turns path on/off using SHOW_PATH/HIDE_PATH constants
         """
-        self._display_path = switch
+        self._display_polyline = switch
 
     def add_polygon(self, polygon):
         """
@@ -55,13 +55,19 @@ class PyGmap(object):
         """
         self._marker = marker
 
+    def add_polyline(self, polyline):
+        """
+        """
+        self._polyline = polyline
+
     #----------------------------------------------------------SET UP JAVASCRIPT---
 
     def _get_js(self):
         self._js = self._start_initialize()
 
         self._js += self._setup_map()
-
+        self._js += self._setup_path()
+        self._js += self._setup_event_listeners()
         self._js += self._end_initialize()
 
         return self._js
@@ -113,7 +119,41 @@ class PyGmap(object):
 
     def _setup_path(self):
         js = ""
-        return js
+        if self._display_polyline:
+            if self._polyline is not None:
+                js = """
+                    var pathArray = [
+                """
+
+                for point in self._polyline.polyline_options["path"]:
+                    js += """
+                        new google.maps.LatLng(%s, %s),
+                    """ % (point.latitude, point.longitude)
+
+                js += """
+                    ]; // end path array
+                """
+            js += """
+                var pathOptions = { 
+            """
+            
+            if self._polyline is not None:
+                js += """
+                    path: pathArray,
+                """
+            js += """
+                strokeColor: '#000000',
+                strokeWeight: 2,
+                strokeOpacity: 1,
+                editable: true,
+                map: window.map
+                }; // end pathOptions
+                window.path = new google.maps.Polyline(pathOptions);
+            """
+
+            return js
+        else:
+            pass
 
     def _setup_polygon(self):
         js = ""
@@ -123,10 +163,35 @@ class PyGmap(object):
         js = ""
         return js
 
+    def _setup_event_listeners(self):
+        js = """
+            google.maps.event.addListener(window.map, 'click', function(event) {
+                window.path.getPath().push(event.latLng);                
+            });
+        """
+        return js
+
     #----------------------------------------------------------SET UP HTML---------
 
     def _get_html(self):
-        self._html = ""
+        self._html = """
+        <!DOCTYPE html>
+        <html>
+            <head>
+                <style text="text/css">
+                    html {height: 100%%;}
+                    body {height: 100%%; margin: 0, padding: 0}
+                    #map_canvas {height: 100%%}
+                </style>
+                <script type="text/javascript" src="https://maps.googleapis.com/maps/api/js?key=%s&sensor=false"></script>
+                <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.8.2/jquery.min.js"></script>
+                <script type="text/javascript" src="pygmap.js"></script>
+            </head>
+            <body onload="initialize()">
+                <div id="map_canvas" style="width: 100%%; height: 100%%;"></div>
+            </body>
+        </html>
+        """ % (self._api_key)
         return self._html
 
 #------------------------------------------------------GOOGLE MAPS API OBJECTS-------
@@ -171,7 +236,7 @@ class Polygon(object):
 
 class PolyLine(object):
     def __init__(self, options):
-        self._options
+        self._options = options
     
     def get_polyline_options(self):
         return self._options
