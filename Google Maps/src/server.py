@@ -1,6 +1,6 @@
 from flask import Flask, url_for, request
 from werkzeug.contrib.cache import SimpleCache
-from mavproxy_headless import load_waypoints_from_array
+from MAVProxy import mavproxy_headless
 app = Flask(__name__)
 cache = SimpleCache()
 
