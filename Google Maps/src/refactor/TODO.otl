@@ -1,0 +1,60 @@
+PyGMap
+    : create Map
+    : pass in path to preset path on map
+    : ?be able to turn path on and off
+    : draw Multiple Polygons of different colored strokes and fills
+    : ------------------------------------------------------------------
+    : be able to draw and edit path on map
+    : be able to edit specific points on path by entering values
+    :     lat, lng, alt, type [takeoff, land, waypoint, loiter <duration>]
+    : see position of plane on map updated in realtime as plane flies
+    : right click context menu for options
+    : be able to delete any specific point on path
+    : be able to send data to server and then to mavlink
+    : be able to send data to map from server
+    : show coordinate of cursor on status bar
+
+Program flow
+
+main:
+    mapOptions = {
+        "zoom" : 5,
+        "mapTypeId" : "road",
+        "center"    : coordinate tuple here 
+    }
+    map  = new Map(mapOptions)
+
+    // preset path
+    path = [list of coordinate tuples here]
+
+    pygmap = PyGmap(map, path)
+
+    /*
+    * NOTE: do i want to be able to set display_path and path during construction?
+    */
+
+    pygmap.toggle_display_path(pygmap.SHOW_PATH)    // show path
+    pygmap.toggle_display_path(pygmap.HIDE_PATH)    // hide path
+
+    // add marker to map
+    // NOTE: neccesary?
+    markerOptions = {
+        "position"  : Coordinate(latitude=10, longitude=10, altitude=0, type="waypoint", duration=0)
+    }
+    /*
+    * QUESTION: can named tuples use default values?
+    */
+    pygmap.add_marker(Marker(markerOptions))
+
+    // add polygons here
+    coord = [list of LatLng here]
+    polygon_1 = Polygon(coord)
+    pygmap.add_polygon(polygon_1)     
+
+    coord_2 = [list of LatLng here]
+    polygon_2 = Polygon(coord_2)
+    pygmap.add_polygon(polygon_2)
+
+    PyGmap.write() // can pass in file names or use defaults
+
+    // change coordinate of 
