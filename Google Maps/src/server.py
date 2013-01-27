@@ -1,5 +1,6 @@
 from flask import Flask, url_for, request
 from werkzeug.contrib.cache import SimpleCache
+from mavproxy_headless import load_waypoints_from_array
 app = Flask(__name__)
 cache = SimpleCache()
 
@@ -37,6 +38,7 @@ def getFlightPlan():
         print "duration: " + str(coordDict["duration"])
         print
 
+    load_waypoints_from_array(list)
     return list
 
 with app.app_context():
