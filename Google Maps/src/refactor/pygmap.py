@@ -68,7 +68,10 @@ class PyGmap(object):
         self._js += self._setup_map()
         self._js += self._setup_path()
         self._js += self._setup_event_listeners()
+
         self._js += self._end_initialize()
+
+        self._js += self._setup_context_menu()
 
         return self._js
 
@@ -160,14 +163,74 @@ class PyGmap(object):
         return js
     
     def _setup_context_menu(self):
-        js = ""
+        js = """
+            function showContextMenu(event) {
+                // first remove existing context menu
+                $('.contextmenu').remove();
+
+                var contextmenu;
+                var position = event.latLng;
+                contextmenu = document.createElement('div');
+                contextmenu.className = 'contextmenu';
+                contextmenu.innerHTML = "<button type=\\'button\\' id=\\'sendCoord\\' class=\\'btn\\'>Send Coordinates</button>";
+                contextmenu.innerHTML += "<button type=\\'button\\' id=\\'refresh\\' class=\\'btn\\'>Refresh</button>";
+                contextmenu.innerHTML += "<button type=\\'button\\' id=\\'delPoint\\' class=\\'btn\\'>Delete Point</button>";
+                $(window.map.getDiv()).append(contextmenu);
+
+                var clickedPosition = latlngToXY(position);
+                $('.contextmenu').css('left', clickedPosition.x);
+                $('.contextmenu').css('top', clickedPosition.y);
+
+                contextmenu.style.visibility = "visible";
+
+                window.isContextMenuOpen = true;
+
+                $('#sendCoord').click(sendCoordinates);
+                $('#refresh').click(refresh);
+                $('#delPoint').click(deletePoint);
+
+                //TODO: is this necessary?
+                //contextmenu.style.visibility = "visible";
+            } // end showContext menu()
+
+            function sendCoordinates() {} // end sendCoordinates()
+            function refresh() {
+                location.reload();
+            } // end refresh()
+            function deletePoint() {} // end deletePoints()
+
+            function latlngToXY(latlng) {
+                var scale = Math.pow(2, window.map.getZoom());
+                var nwlatlng = new google.maps.LatLng(
+                    window.map.getBounds().getNorthEast().lat(),
+                    window.map.getBounds().getSouthWest().lng()
+                );
+                var nwpoint = window.map.getProjection().fromLatLngToPoint(nwlatlng);
+                var clickpoint = window.map.getProjection().fromLatLngToPoint(latlng);
+                var offset = new google.maps.Point(
+                    (clickpoint.x - nwpoint.x) * scale,
+                    (clickpoint.y - nwpoint.y) * scale
+                );
+                
+                return offset;
+            }
+        """
         return js
 
     def _setup_event_listeners(self):
         js = """
             google.maps.event.addListener(window.map, 'click', function(event) {
+                if(window.isContextMenuOpen) {
+                    $('.contextmenu').remove();
+                    window.isContextMenuOpen = false;
+                    return;
+                }
                 window.path.getPath().push(event.latLng);                
             });
+        """
+
+        js += """
+            google.maps.event.addListener(window.map, 'rightclick', showContextMenu);
         """
         return js
 
@@ -182,6 +245,25 @@ class PyGmap(object):
                     html {height: 100%%;}
                     body {height: 100%%; margin: 0, padding: 0}
                     #map_canvas {height: 100%%}
+                    .contextmenu {
+                        visibility: hidden;
+                        background: #FEFEFE;
+                        border: 2px solid #FAFAFA;
+                        z-index: 10;
+                        position: relative;
+                        width: 140px;
+                    }
+                    .btn {
+                        width: 100%%;
+                        height: 100%%;
+                        border: none;
+                        background: #FEFEFE;
+                        outline: 0;
+                        text-align: left;
+                    }
+                    .btn:hover {
+                        background: #F0F0F0;
+                    }
                 </style>
                 <script type="text/javascript" src="https://maps.googleapis.com/maps/api/js?key=%s&sensor=false"></script>
                 <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.8.2/jquery.min.js"></script>
