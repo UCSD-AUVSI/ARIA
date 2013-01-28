@@ -42,5 +42,5 @@ if __name__ == '__main__':
     serverThread = threading.Thread(name="server thread", target=ser)
     serverThread.setDaemon(True)
 
-    uiThread.start()
     serverThread.start()
+    ui()

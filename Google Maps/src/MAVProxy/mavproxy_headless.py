@@ -11,6 +11,7 @@ import sys, os, struct, math, time, socket
 import fnmatch, errno, threading
 import serial, Queue, select
 import time
+from noconsole import NoConsole
 
 # The modules subdirectory contains the modules that come with
 # mavproxy.
@@ -1747,6 +1748,7 @@ import mavutil, mavwp, mavparm
 
 # global mavproxy state
 mpstate = MPState()
+mpstate.console = NoConsole()
 mpstate.status.exit = False
 mpstate.command_map = command_map
 mpstate.continue_mode = opts.continue_mode
@@ -1874,7 +1876,3 @@ if opts.cmd is not None:
 mpstate.status.thread = threading.Thread(target=main_loop)
 mpstate.status.thread.daemon = True
 mpstate.status.thread.start()
-
-# Sleep Forever
-while True:
-  time.sleep(1)
