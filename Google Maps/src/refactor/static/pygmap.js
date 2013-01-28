@@ -42,12 +42,38 @@
                     window.isContextMenuOpen = false;
                     return;
                 }
+                if(window.isInfoWindowOpen) {
+                    window.infowindow.close();
+                    window.isInfoWindowOpen = false;
+                    return;
+                }
                 window.path.getPath().push(event.latLng);                
             });
         
             google.maps.event.addListener(window.map, 'rightclick', showContextMenu);
         
+            google.maps.event.addListener(window.path, 'rightclick', showContextMenu);
+        
+            google.maps.event.addListener(window.path, 'click', showCoordinate);
+        
             } // end initialize()
+        
+            function showCoordinate(event) {
+                window.infowindow = new google.maps.InfoWindow();
+                var index = window.path.getPath().getArray().indexOf(event.latLng);
+
+                var message = "";
+                message += "<div class=\'infodiv\'><label class=\'name\'>Latitude:</label><input id=\'latbox\' class=\'inputbox\' type=\'text\' value=\'" + event.latLng.lat() + "\'/></div><br />";
+                message += "<div class=\'infodiv\'><label class=\'name\'>Longitude:</label><input id=\'lngbox\' class=\'inputbox\' type=\'text\' value=\'" + event.latLng.lng() + "\'/></div><br />";
+                message += "<div class=\'infodiv\'><label class=\'name\'>Altitude:</label><input id=\'altbox\' class=\'inputbox\' type=\'text\' value=\'" + 0 + "\'/></div><br />";
+                message += "<div class=\'infodiv\'><label class=\'name\'>Type:</label><select class=\'inputbox\' name=\'types\'><option value=\'takeoff\'>Takeoff</option><option value=\'waypoint\'>Waypoint</option><option value=\'loiter\'>Loiter</option><option value=\'land\'>Land</option></select></div><br />";
+                
+
+                window.infowindow.setContent(message);
+                window.infowindow.setPosition(event.latLng);
+                window.infowindow.open(map);
+                window.isInfoWindowOpen = true;
+            }
         
             function showContextMenu(event) {
                 // first remove existing context menu
@@ -59,7 +85,8 @@
                 contextmenu.className = 'contextmenu';
                 contextmenu.innerHTML = "<button type=\'button\' id=\'sendCoord\' class=\'btn\'>Send Coordinates</button>";
                 contextmenu.innerHTML += "<button type=\'button\' id=\'refresh\' class=\'btn\'>Refresh</button>";
-                contextmenu.innerHTML += "<button type=\'button\' id=\'delPoint\' class=\'btn\'>Delete Point</button>";
+                contextmenu.innerHTML += "<button type=\'button\' id=\'delPoint\' class=\'btn\'>Delete Waypoint</button>";
+                contextmenu.innerHTML += "<button type=\'button\' id=\'delAllPoints\' class=\'btn\'>Delete All Waypoints</button>";
                 $(window.map.getDiv()).append(contextmenu);
 
                 var clickedPosition = latlngToXY(position);
@@ -72,17 +99,48 @@
 
                 $('#sendCoord').click(sendCoordinates);
                 $('#refresh').click(refresh);
-                $('#delPoint').click(deletePoint);
+                $('#delPoint').click({param1: position},deletePoint);
+                $('#delAllPoints').click(deleteAllPoints);
 
                 //TODO: is this necessary?
                 //contextmenu.style.visibility = "visible";
             } // end showContext menu()
 
-            function sendCoordinates() {} // end sendCoordinates()
+            function sendCoordinates() {
+               // var coordArray = [];
+               // for(var i = 0; i  < window.path.getPath().getLength(); i++) {
+               //     coordArray.push({
+               //         latitude: window.path.getPath().getAt(i).lat(),
+               //         longitude: window.path.getPath().getAt(i).lng(),
+               //         altitude: altitudeArray[i],
+               //         type: typeArray[i],
+               //         duration: durationArray[i]
+               //     });
+               // }
+               // $.post("http://localhost:5000",
+               // {
+               //     "data" : coordArray
+               // });
+               // $('.contextmenu').remove();
+            } // end sendCoordinates()
+
             function refresh() {
                 location.reload();
             } // end refresh()
-            function deletePoint() {} // end deletePoints()
+
+            function deletePoint(event) {
+                var position = event.data.param1;
+                var index = window.path.getPath().getArray().indexOf(position);
+                if(index != -1)
+                    window.path.getPath().removeAt(index);
+                else
+                    alert('point not in path');
+                $('.contextmenu').remove();
+            } // end deletePoints()
+
+            function deleteAllPoints() {
+                // TODO: complete function
+            } // end deleteAllPoints()
 
             function latlngToXY(latlng) {
                 var scale = Math.pow(2, window.map.getZoom());
