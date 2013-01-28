@@ -386,6 +386,9 @@ class GoogleMapsPy(object):
                 contextmenu.innerHTML += "<button type=\\"button\\" id=\\"item2\\" class=\\"btn\\">Circle Here</button>";
                 contextmenu.innerHTML += "<button type=\\"button\\" id=\\"item3\\" class=\\"btn\\">Refresh</button>";
                 contextmenu.innerHTML += "<button type=\\"button\\" id=\\"item4\\" class=\\"btn\\">Remove point</button>";
+                contextmenu.innerHTML += "<button type=\\"button\\" id=\\"item5\\" class=\\"btn\\">Loiter Here</button>";
+                contextmenu.innerHTML += "<button type=\\"button\\" id=\\"item6\\" class=\\"btn\\">Clear all waypoints</button>";
+
                 $(map.getDiv()).append(contextmenu);
 
                 var clickedPosition = latLngToXY(position);
@@ -466,6 +469,30 @@ class GoogleMapsPy(object):
                         alert('point not in path');
                     contextmenu.style.visibility = "hidden";
                 }); // end of #item4 event handler
+
+                // LOITER HERE
+                $('#item5').click(function() {
+                    if(position.equals(currentPosition)) {
+                        marker.setPosition(position);
+                        currentPosition = position;
+                    }
+                    else {
+                        var tmpPath = [
+                            new google.maps.LatLng(currentPosition.lat(), currentPosition.lng()),
+                            new google.maps.LatLng(position.lat(), position.lng())
+                        ];
+                        poly.setPath(tmpPath);
+                        marker.setPosition(position);
+                        currentPosition = position;
+                    }
+                    contextmenu.style.visibility = "hidden";
+                }); //  end of #item5 event handler
+				
+                // CLEAR ALL WAYPOINTS
+                $('#item6').click(function() {
+                    poly.getPath().clear();
+                    contextmenu.style.visibility = "hidden";
+                }); // end of #item6 event handler
 
                 contextmenu.style.visibility = "visible";
             }
