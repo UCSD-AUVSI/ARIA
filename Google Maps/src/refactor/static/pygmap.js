@@ -1,6 +1,10 @@
 
             function initialize() {
         
+            window.durationArray = []
+            window.altitudeArray = []
+            window.typeArray = []
+        
             var mapOptions = {
         
                     mapTypeId : google.maps.MapTypeId.ROADMAP,
@@ -36,6 +40,22 @@
                 }; // end pathOptions
                 window.path = new google.maps.Polyline(pathOptions);
             
+                        altitudeArray.push(0);
+                        typeArray.push('takeoff');
+                        durationArray.push(0);
+                    
+                        altitudeArray.push(0);
+                        typeArray.push('waypoint');
+                        durationArray.push(0);
+                    
+                        altitudeArray.push(0);
+                        typeArray.push('loiter');
+                        durationArray.push(5);
+                    
+                        altitudeArray.push(0);
+                        typeArray.push('land');
+                        durationArray.push(0);
+                    
             google.maps.event.addListener(window.map, 'click', function(event) {
                 if(window.isContextMenuOpen) {
                     $('.contextmenu').remove();
@@ -55,6 +75,96 @@
             google.maps.event.addListener(window.path, 'rightclick', showContextMenu);
         
             google.maps.event.addListener(window.path, 'click', showCoordinate);
+        
+            google.maps.event.addListener(window.path.getPath(), 'insert_at', function(index) {
+                // insert at beginning of path
+                if(index == 0) {
+                    window.altitudeArray.push(index);   // TODO: properly set altitude
+                    window.typeArray.push("Takeoff");
+                    window.durationArray.push(0);
+                }
+                // insert at end of path
+                else if(index == (window.path.getPath().getLength() - 1)) {
+                    window.altitudeArray.push(index);   // TODO: properly set altitude
+                    window.typeArray.push("Land");
+                    window.durationArray.push(0);
+                }
+                // insert at middle of path
+                else {
+                    var atmp = [];
+                    var ttmp = [];
+                    var dtmp = [];
+
+                    // Altitude array
+                    for(var i = 0; i < index; i++)
+                        atmp[i] = window.altitudeArray[i];
+                    atmp[index] = index;                // TODO: properly set altitude
+                    for(var i = index+1; i <= window.altitudeArray.length; i++)
+                        atmp[i] = window.altitudeArray[i-1];
+                    window.altitudeArray = atmp;
+
+                    // Type array
+                    for(var i = 0; i < index; i++)
+                        ttmp[i] = window.typeArray[i];
+                    ttmp[index] = "Waypoint";
+                    for(var i = index+1; i <= window.typeArray.length; i++)
+                        ttmp[i] = window.typeArray[i-1];
+                    window.typeArray = ttmp;
+
+                    // Duratino array
+                    for(var i = 0; i < index; i++)
+                        dtmp[i] = window.durationArray[i];
+                    dtmp[index] = 0;
+                    for(var i = index+1; i <= window.durationArray.length; i++)
+                        dtmp[i] = window.durationArray[i-1];
+                    window.durationArray = dtmp;
+                }
+            });
+        
+            /*
+            * NOTE: google maps api decreases length of mvc array beore 'remove_at' event gets called
+            */
+            google.maps.event.addListener(window.path.getPath(), 'remove_at', function(index) {
+                // remove first waypoint in path
+                if(index == 0) {
+                    window.altitudeArray.shift();
+                    window.durationArray.shift();
+                    window.typeArray.shift();
+                }
+                // remove last waypoint in path
+                else if(index == window.path.getPath().getLength()) {
+                    window.altitudeArray.pop();
+                    window.durationArray.pop();
+                    window.typeArray.pop();
+                }
+                // remove waypoint from middle of path
+                else {
+                    var atmp = [];
+                    var ttmp = [];
+                    var dtmp = [];
+
+                    // Altitude array
+                    for(var i = 0; i < index; i++)
+                        atmp[i] = window.altitudeArray[i];
+                    for(var i = index+1; i < window.altitudeArray.length; i++)
+                        atmp[i-1] = window.altitudeArray[i];
+                    window.altitudeArray = atmp;
+
+                    // Type array
+                    for(var i = 0; i < index; i++)
+                        ttmp[i] = window.durationArray[i];
+                    for(var i = index+1; i < window.typeArray.length; i++)
+                        ttmp[i-1] = window.durationArray[i];
+                    window.typeArray = ttmp;
+
+                    // Duration array
+                    for(var i = 0; i < index; i++)
+                        dtmp[i] = window.durationArray[i];
+                    for(var i = index+1; i < window.durationArray.length; i++)
+                        dtmp[i-1] = window.durationArray[i];
+                    window.durationArray = dtmp;
+                }
+            });
         
             } // end initialize()
         

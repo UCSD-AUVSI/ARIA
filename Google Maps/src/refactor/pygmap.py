@@ -65,6 +65,7 @@ class PyGmap(object):
     def _get_js(self):
         self._js = self._start_initialize()
 
+        self._js += self._setup_arrays()
         self._js += self._setup_map()
         self._js += self._setup_path()
         self._js += self._setup_event_listeners()
@@ -85,6 +86,14 @@ class PyGmap(object):
     def _end_initialize(self):
         js = """
             } // end initialize()
+        """
+        return js
+
+    def _setup_arrays(self):
+        js = """
+            window.durationArray = []
+            window.altitudeArray = []
+            window.typeArray = []
         """
         return js
 
@@ -155,6 +164,13 @@ class PyGmap(object):
                 window.path = new google.maps.Polyline(pathOptions);
             """
 
+            if self._polyline is not None:
+                for point in self._polyline.polyline_options["path"]:
+                    js += """
+                        altitudeArray.push(%i);
+                        typeArray.push('%s');
+                        durationArray.push(%i);
+                    """ % (point.altitude, point.ctype, point.duration)
             return js
         else:
             pass
@@ -298,6 +314,100 @@ class PyGmap(object):
 
         js += """
             google.maps.event.addListener(window.path, 'click', showCoordinate);
+        """
+
+        js += """
+            google.maps.event.addListener(window.path.getPath(), 'insert_at', function(index) {
+                // insert at beginning of path
+                if(index == 0) {
+                    window.altitudeArray.push(index);   // TODO: properly set altitude
+                    window.typeArray.push("Takeoff");
+                    window.durationArray.push(0);
+                }
+                // insert at end of path
+                else if(index == (window.path.getPath().getLength() - 1)) {
+                    window.altitudeArray.push(index);   // TODO: properly set altitude
+                    window.typeArray.push("Land");
+                    window.durationArray.push(0);
+                }
+                // insert at middle of path
+                else {
+                    var atmp = [];
+                    var ttmp = [];
+                    var dtmp = [];
+
+                    // Altitude array
+                    for(var i = 0; i < index; i++)
+                        atmp[i] = window.altitudeArray[i];
+                    atmp[index] = index;                // TODO: properly set altitude
+                    for(var i = index+1; i <= window.altitudeArray.length; i++)
+                        atmp[i] = window.altitudeArray[i-1];
+                    window.altitudeArray = atmp;
+
+                    // Type array
+                    for(var i = 0; i < index; i++)
+                        ttmp[i] = window.typeArray[i];
+                    ttmp[index] = "Waypoint";
+                    for(var i = index+1; i <= window.typeArray.length; i++)
+                        ttmp[i] = window.typeArray[i-1];
+                    window.typeArray = ttmp;
+
+                    // Duratino array
+                    for(var i = 0; i < index; i++)
+                        dtmp[i] = window.durationArray[i];
+                    dtmp[index] = 0;
+                    for(var i = index+1; i <= window.durationArray.length; i++)
+                        dtmp[i] = window.durationArray[i-1];
+                    window.durationArray = dtmp;
+                }
+            });
+        """
+
+        js += """
+            /*
+            * NOTE: google maps api decreases length of mvc array beore 'remove_at' event gets called
+            */
+            google.maps.event.addListener(window.path.getPath(), 'remove_at', function(index) {
+                // remove first waypoint in path
+                if(index == 0) {
+                    window.altitudeArray.shift();
+                    window.durationArray.shift();
+                    window.typeArray.shift();
+                }
+                // remove last waypoint in path
+                else if(index == window.path.getPath().getLength()) {
+                    window.altitudeArray.pop();
+                    window.durationArray.pop();
+                    window.typeArray.pop();
+                }
+                // remove waypoint from middle of path
+                else {
+                    var atmp = [];
+                    var ttmp = [];
+                    var dtmp = [];
+
+                    // Altitude array
+                    for(var i = 0; i < index; i++)
+                        atmp[i] = window.altitudeArray[i];
+                    for(var i = index+1; i < window.altitudeArray.length; i++)
+                        atmp[i-1] = window.altitudeArray[i];
+                    window.altitudeArray = atmp;
+
+                    // Type array
+                    for(var i = 0; i < index; i++)
+                        ttmp[i] = window.durationArray[i];
+                    for(var i = index+1; i < window.typeArray.length; i++)
+                        ttmp[i-1] = window.durationArray[i];
+                    window.typeArray = ttmp;
+
+                    // Duration array
+                    for(var i = 0; i < index; i++)
+                        dtmp[i] = window.durationArray[i];
+                    for(var i = index+1; i < window.durationArray.length; i++)
+                        dtmp[i-1] = window.durationArray[i];
+                    window.durationArray = dtmp;
+                }
+            });
         """
         return js
 
