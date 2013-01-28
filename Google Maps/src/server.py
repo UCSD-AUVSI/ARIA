@@ -1,8 +1,6 @@
 from flask import Flask, url_for, request
-from werkzeug.contrib.cache import SimpleCache
-from MAVProxy import mavproxy_headless
+from MAVProxy import mavproxy_headless, mavproxy
 app = Flask(__name__)
-cache = SimpleCache()
 
 app.config["SERVER_NAME"] = "localhost:5000"
 
@@ -38,7 +36,10 @@ def getFlightPlan():
         print "duration: " + str(coordDict["duration"])
         print
 
-    load_waypoints_from_array(list)
+    print "before loading waypoints"
+    mavproxy_headless.load_waypoints_from_array(list)
+    print "after loading from waypoints"
+
     return list
 
 with app.app_context():

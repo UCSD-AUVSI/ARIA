@@ -1876,3 +1876,7 @@ if opts.cmd is not None:
 mpstate.status.thread = threading.Thread(target=main_loop)
 mpstate.status.thread.daemon = True
 mpstate.status.thread.start()
+
+# Sleep Forever
+#while True:
+#  time.sleep(1)
