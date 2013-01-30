@@ -1,9 +1,9 @@
 
             function initialize() {
-        
-            window.durationArray = []
-            window.altitudeArray = []
-            window.typeArray = []
+                window.durationArray = []
+                window.altitudeArray = []
+                window.typeArray = []
+                window.infowindow = new google.maps.InfoWindow();
         
             var mapOptions = {
         
@@ -14,7 +14,7 @@
                     zoom : 5,
                 
             };  // end mapOptions
-            window.map = new google.maps.Map(document.getElementById('map_canvas'), mapOptions);
+            window.map = new google.maps.Map(document.getElementById("map_canvas"), mapOptions);
         
                     var pathArray = [
                 
@@ -32,7 +32,7 @@
             
                     path: pathArray,
                 
-                strokeColor: '#000000',
+                strokeColor: "#000000",
                 strokeWeight: 2,
                 strokeOpacity: 1,
                 editable: true,
@@ -41,24 +41,24 @@
                 window.path = new google.maps.Polyline(pathOptions);
             
                         altitudeArray.push(0);
-                        typeArray.push('takeoff');
+                        typeArray.push("takeoff");
                         durationArray.push(0);
                     
                         altitudeArray.push(0);
-                        typeArray.push('waypoint');
+                        typeArray.push("waypoint");
                         durationArray.push(0);
                     
                         altitudeArray.push(0);
-                        typeArray.push('loiter');
+                        typeArray.push("loiter");
                         durationArray.push(5);
                     
                         altitudeArray.push(0);
-                        typeArray.push('land');
+                        typeArray.push("land");
                         durationArray.push(0);
                     
-            google.maps.event.addListener(window.map, 'click', function(event) {
+            google.maps.event.addListener(window.map, "click", function(event) {
                 if(window.isContextMenuOpen) {
-                    $('.contextmenu').remove();
+                    $(".contextmenu").remove();
                     window.isContextMenuOpen = false;
                     return;
                 }
@@ -69,14 +69,9 @@
                 }
                 window.path.getPath().push(event.latLng);                
             });
+               
         
-            google.maps.event.addListener(window.map, 'rightclick', showContextMenu);
-        
-            google.maps.event.addListener(window.path, 'rightclick', showContextMenu);
-        
-            google.maps.event.addListener(window.path, 'click', showCoordinate);
-        
-            google.maps.event.addListener(window.path.getPath(), 'insert_at', function(index) {
+            google.maps.event.addListener(window.path.getPath(), "insert_at", function(index) {
                 // insert at beginning of path
                 if(index == 0) {
                     window.altitudeArray.push(index);   // TODO: properly set altitude
@@ -122,9 +117,9 @@
             });
         
             /*
-            * NOTE: google maps api decreases length of mvc array beore 'remove_at' event gets called
+            * NOTE: google maps api decreases length of mvc array beore "remove_at" event gets called
             */
-            google.maps.event.addListener(window.path.getPath(), 'remove_at', function(index) {
+            google.maps.event.addListener(window.path.getPath(), "remove_at", function(index) {
                 // remove first waypoint in path
                 if(index == 0) {
                     window.altitudeArray.shift();
@@ -166,51 +161,112 @@
                 }
             });
         
-            } // end initialize()
+            google.maps.event.addListener(window.path, "click", function(event) {
+                    var index = window.path.getPath().getArray().indexOf(event.latLng);
+
+                    var message = "";
+                    message += "<div class=\"infodiv\"><label class=\"name\">Latitude:</label><input id=\"latbox\" class=\"inputbox\" type=\"text\" value=\"" + event.latLng.lat() + "\"/></div><br />";
+                    message += "<div class=\"infodiv\"><label class=\"name\">Longitude:</label><input id=\"lngbox\" class=\"inputbox\" type=\"text\" value=\"" + event.latLng.lng() + "\"/></div><br />";
+                    message += "<div class=\"infodiv\"><label class=\"name\">Altitude:</label><input id=\"altbox\" class=\"inputbox\" type=\"text\" value=\"" + 0 + "\"/></div><br />";
+                    if(window.typeArray[index] == "Takeoff") {
+                        message += "<div class=\"infodiv\"><label class=\"name\">Type:</label><select class=\"inputbox\" name=\"types\"><option value=\"takeoff\" selected=\"selected\">Takeoff</option><option value=\"waypoint\">Waypoint</option><option value=\"loiter\">Loiter</option><option value=\"land\">Land</option></select></div><br />";
+                    }
+                    else if(window.typeArray[index] == "Waypoint") {
+                        message += "<div class=\"infodiv\"><label class=\"name\">Type:</label><select class=\"inputbox\" name=\"types\"><option value=\"takeoff\">Takeoff</option><option value=\"waypoint\" selected=\"selected\">Waypoint</option><option value=\"loiter\">Loiter</option><option value=\"land\">Land</option></select></div><br />";
+                    }
+                    else if(window.typeArray[index] == "Loiter") {
+                        message += "<div class=\"infodiv\"><label class=\"name\">Type:</label><select class=\"inputbox\" name=\"types\"><option value=\"takeoff\" >Takeoff</option><option value=\"waypoint\">Waypoint</option><option value=\"loiter\" selected=\"selected\">Loiter</option><option value=\"land\">Land</option></select></div><br />";
+                        message += "<div class=\"infodiv\"><label class=\"name\">Duration:</label><input id=\"durbox\" class=\"inputbox\" type=\"text\" value=\"" + window.durationArray[index] + "\" /><br />";
+                    }
+                    else {
+                        message += "<div class=\"infodiv\"><label class=\"name\">Type:</label><select class=\"inputbox\" name=\"types\"><option value=\"takeoff\" >Takeoff</option><option value=\"waypoint\">Waypoint</option><option value=\"loiter\">Loiter</option><option value=\"land\" selected=\"selected\">Land</option></select></div><br />";
+                    }
+                    
+                    window.infowindow.setContent(message);
+                    window.infowindow.setPosition(event.latLng);
+                    window.infowindow.open(map);
+                    window.isInfoWindowOpen = true;
+
+                    $(".infodiv > .inputbox").keyup(function(event) {
+                        // enter key is pressed
+                        if(event.keyCode == 13) {
+                            var newpos = new google.maps.LatLng($("#latbox").val(), $("#lngbox").val());
+                            window.path.getPath().setAt(index, newpos);
+                            window.altitudeArray[index] = $("#altbox").val();
+                            if(window.typeArray[index] == "Loiter")
+                                window.durationArray[index] = $("#durbox").val();
+                            window.infowindow.setPosition(newpos);
+                            alert("values updatd");
+                        }
+                    }); //  inputbox event handler
+
+                    $(".infodiv > select").change(function() {
+                        var optionSelected = "";
+                        $('select option:selected').each(function() {
+                            optionSelected += $(this).text();
+                        });
+                        if(optionSelected == "Loiter") {
+                            window.infowindow.close();
+
+                            var message = "";
+                            message += "<div class=\"infodiv\"><label class=\"name\">Latitude:</label><input id=\"latbox\" class=\"inputbox\" type=\"text\" value=\"" + event.latLng.lat() + "\"/></div><br />";
+                            message += "<div class=\"infodiv\"><label class=\"name\">Longitude:</label><input id=\"lngbox\" class=\"inputbox\" type=\"text\" value=\"" + event.latLng.lng() + "\"/></div><br />";
+                            message += "<div class=\"infodiv\"><label class=\"name\">Altitude:</label><input id=\"altbox\" class=\"inputbox\" type=\"text\" value=\"" + 0 + "\"/></div><br />";
+                            message += "<div class=\"infodiv\"><label class=\"name\">Type:</label><select class=\"inputbox\" name=\"types\"><option value=\"takeoff\" >Takeoff</option><option value=\"waypoint\">Waypoint</option><option value=\"loiter\" selected=\"selected\">Loiter</option><option value=\"land\">Land</option></select></div><br />";
+                            message += "<div class=\"infodiv\"><label class=\"name\">Duration:</label><input id=\"durbox\" class=\"inputbox\" type=\"text\" value=\"" + window.durationArray[index] + "\" /><br />";
+
+                            window.infowindow.setContent(message);
+                            window.infowindow.open(window.map);
+
+                            $(".infodiv > .inputbox").keyup(function(event) {
+                                // enter key is pressed
+                                if(event.keyCode == 13) {
+                                    var newpos = new google.maps.LatLng($("#latbox").val(), $("#lngbox").val());
+                                    window.path.getPath().setAt(index, newpos);
+                                    window.altitudeArray[index] = $("#altbox").val();
+                                    if(window.typeArray[index] == "Loiter")
+                                        window.durationArray[index] = $("#durbox").val();
+                                    window.infowindow.setPosition(newpos);
+                                    alert("values updatd");
+                                }
+                            }); // end inputbox event handler
+                        } // end select box event handler
+
+                        window.typeArray[index] = optionSelected;
+                        window.durationArray[index] = 0;
+                    });
+            }); // end show coordinate event listener
         
-            function showCoordinate(event) {
-                window.infowindow = new google.maps.InfoWindow();
-                var index = window.path.getPath().getArray().indexOf(event.latLng);
-
-                var message = "";
-                message += "<div class=\'infodiv\'><label class=\'name\'>Latitude:</label><input id=\'latbox\' class=\'inputbox\' type=\'text\' value=\'" + event.latLng.lat() + "\'/></div><br />";
-                message += "<div class=\'infodiv\'><label class=\'name\'>Longitude:</label><input id=\'lngbox\' class=\'inputbox\' type=\'text\' value=\'" + event.latLng.lng() + "\'/></div><br />";
-                message += "<div class=\'infodiv\'><label class=\'name\'>Altitude:</label><input id=\'altbox\' class=\'inputbox\' type=\'text\' value=\'" + 0 + "\'/></div><br />";
-                message += "<div class=\'infodiv\'><label class=\'name\'>Type:</label><select class=\'inputbox\' name=\'types\'><option value=\'takeoff\'>Takeoff</option><option value=\'waypoint\'>Waypoint</option><option value=\'loiter\'>Loiter</option><option value=\'land\'>Land</option></select></div><br />";
-                
-
-                window.infowindow.setContent(message);
-                window.infowindow.setPosition(event.latLng);
-                window.infowindow.open(map);
-                window.isInfoWindowOpen = true;
-            }
+            google.maps.event.addListener(window.map, "rightclick", showContextMenu);
+            google.maps.event.addListener(window.path, "rightclick", showContextMenu);
+            } // end initialize()
         
             function showContextMenu(event) {
                 // first remove existing context menu
-                $('.contextmenu').remove();
+                $(".contextmenu").remove();
 
                 var contextmenu;
                 var position = event.latLng;
-                contextmenu = document.createElement('div');
-                contextmenu.className = 'contextmenu';
-                contextmenu.innerHTML = "<button type=\'button\' id=\'sendCoord\' class=\'btn\'>Send Coordinates</button>";
-                contextmenu.innerHTML += "<button type=\'button\' id=\'refresh\' class=\'btn\'>Refresh</button>";
-                contextmenu.innerHTML += "<button type=\'button\' id=\'delPoint\' class=\'btn\'>Delete Waypoint</button>";
-                contextmenu.innerHTML += "<button type=\'button\' id=\'delAllPoints\' class=\'btn\'>Delete All Waypoints</button>";
+                contextmenu = document.createElement("div");
+                contextmenu.className = "contextmenu";
+                contextmenu.innerHTML = "<button type=\"button\" id=\"sendCoord\" class=\"btn\">Send Coordinates</button>";
+                contextmenu.innerHTML += "<button type=\"button\" id=\"refresh\" class=\"btn\">Refresh</button>";
+                contextmenu.innerHTML += "<button type=\"button\" id=\"delPoint\" class=\"btn\">Delete Waypoint</button>";
+                contextmenu.innerHTML += "<button type=\"button\" id=\"delAllPoints\" class=\"btn\">Delete All Waypoints</button>";
                 $(window.map.getDiv()).append(contextmenu);
 
                 var clickedPosition = latlngToXY(position);
-                $('.contextmenu').css('left', clickedPosition.x);
-                $('.contextmenu').css('top', clickedPosition.y);
+                $(".contextmenu").css("left", clickedPosition.x);
+                $(".contextmenu").css("top", clickedPosition.y);
 
                 contextmenu.style.visibility = "visible";
 
                 window.isContextMenuOpen = true;
 
-                $('#sendCoord').click(sendCoordinates);
-                $('#refresh').click(refresh);
-                $('#delPoint').click({param1: position},deletePoint);
-                $('#delAllPoints').click(deleteAllPoints);
+                $("#sendCoord").click(sendCoordinates);
+                $("#refresh").click(refresh);
+                $("#delPoint").click({param1: position},deletePoint);
+                $("#delAllPoints").click(deleteAllPoints);
 
                 //TODO: is this necessary?
                 //contextmenu.style.visibility = "visible";
@@ -231,7 +287,7 @@
                // {
                //     "data" : coordArray
                // });
-               // $('.contextmenu').remove();
+               // $(".contextmenu").remove();
             } // end sendCoordinates()
 
             function refresh() {
@@ -244,12 +300,16 @@
                 if(index != -1)
                     window.path.getPath().removeAt(index);
                 else
-                    alert('point not in path');
-                $('.contextmenu').remove();
+                    alert("point not in path");
+                $(".contextmenu").remove();
             } // end deletePoints()
 
             function deleteAllPoints() {
-                // TODO: complete function
+                window.path.getPath().clear();
+                window.altitudeArray = [];
+                window.typeArray = [];
+                window.durationArray = [];
+                $(".contextmenu").remove();
             } // end deleteAllPoints()
 
             function latlngToXY(latlng) {
@@ -266,5 +326,5 @@
                 );
                 
                 return offset;
-            }
+            } // end latlngToXY()
         

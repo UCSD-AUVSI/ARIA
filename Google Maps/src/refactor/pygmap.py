@@ -30,9 +30,9 @@ class PyGmap(object):
         file names can be passed in as parameters
         """
         cwd = os.curdir
-        with open(cwd+'/static/'+html_file, 'w') as file:
+        with open(cwd+"/static/"+html_file, "w") as file:
             file.write(self._get_html())
-        with open(cwd+'/static/'+js_file, 'w') as file:
+        with open(cwd+"/static/"+js_file, "w") as file:
             file.write(self._get_js())
 
     def toggle_display_path(self, switch):
@@ -65,35 +65,35 @@ class PyGmap(object):
     def _get_js(self):
         self._js = self._start_initialize()
 
-        self._js += self._setup_arrays()
         self._js += self._setup_map()
         self._js += self._setup_path()
-        self._js += self._setup_event_listeners()
+
+        self._js += self._setup_add_point_event()
+        self._js += self._setup_insert_event()
+        self._js += self._setup_delete_event()
+        self._js += self._setup_show_coordinate_event()
 
         self._js += self._end_initialize()
 
-        self._js += self._setup_info_window()
-        self._js += self._setup_context_menu()
+        self._js += self._setup_context_menu_event()
 
         return self._js
 
     def _start_initialize(self):
         js = """
             function initialize() {
+                window.durationArray = []
+                window.altitudeArray = []
+                window.typeArray = []
+                window.infowindow = new google.maps.InfoWindow();
         """
         return js
 
     def _end_initialize(self):
         js = """
+            google.maps.event.addListener(window.map, "rightclick", showContextMenu);
+            google.maps.event.addListener(window.path, "rightclick", showContextMenu);
             } // end initialize()
-        """
-        return js
-
-    def _setup_arrays(self):
-        js = """
-            window.durationArray = []
-            window.altitudeArray = []
-            window.typeArray = []
         """
         return js
 
@@ -102,7 +102,7 @@ class PyGmap(object):
             var mapOptions = {
         """
 
-        for key,value in self._map.map_options.items():
+        for key,value in self._map.options.items():
             
             if key == "mapTypeId":
                 js += """
@@ -112,11 +112,11 @@ class PyGmap(object):
             elif type(value) is Coordinate:
                 js += """
                     %s : new google.maps.LatLng(%d,%d),
-                """ % (key,value.longitude, value.latitude)
+                """ % (key, value.longitude, value.latitude)
 
             elif type(value) is str:
                 js += """
-                    %s : '%s',
+                    %s : "%s",
                 """ % (key, value)
 
             else:
@@ -126,7 +126,7 @@ class PyGmap(object):
 
         js += """
             };  // end mapOptions
-            window.map = new google.maps.Map(document.getElementById('map_canvas'), mapOptions);
+            window.map = new google.maps.Map(document.getElementById("map_canvas"), mapOptions);
         """
         return js
 
@@ -138,7 +138,7 @@ class PyGmap(object):
                     var pathArray = [
                 """
 
-                for point in self._polyline.polyline_options["path"]:
+                for point in self._polyline.options["path"]:
                     js += """
                         new google.maps.LatLng(%s, %s),
                     """ % (point.latitude, point.longitude)
@@ -155,7 +155,7 @@ class PyGmap(object):
                     path: pathArray,
                 """
             js += """
-                strokeColor: '#000000',
+                strokeColor: "#000000",
                 strokeWeight: 2,
                 strokeOpacity: 1,
                 editable: true,
@@ -165,10 +165,10 @@ class PyGmap(object):
             """
 
             if self._polyline is not None:
-                for point in self._polyline.polyline_options["path"]:
+                for point in self._polyline.options["path"]:
                     js += """
                         altitudeArray.push(%i);
-                        typeArray.push('%s');
+                        typeArray.push("%s");
                         durationArray.push(%i);
                     """ % (point.altitude, point.ctype, point.duration)
             return js
@@ -179,119 +179,91 @@ class PyGmap(object):
         js = ""
         return js
 
-    def _setup_info_window(self):
+    def _setup_show_coordinate_event(self):
         js = """
-            function showCoordinate(event) {
-                window.infowindow = new google.maps.InfoWindow();
-                var index = window.path.getPath().getArray().indexOf(event.latLng);
+            google.maps.event.addListener(window.path, "click", function(event) {
+                    var index = window.path.getPath().getArray().indexOf(event.latLng);
 
-                var message = "";
-                message += "<div class=\\'infodiv\\'><label class=\\'name\\'>Latitude:</label><input id=\\'latbox\\' class=\\'inputbox\\' type=\\'text\\' value=\\'" + event.latLng.lat() + "\\'/></div><br />";
-                message += "<div class=\\'infodiv\\'><label class=\\'name\\'>Longitude:</label><input id=\\'lngbox\\' class=\\'inputbox\\' type=\\'text\\' value=\\'" + event.latLng.lng() + "\\'/></div><br />";
-                message += "<div class=\\'infodiv\\'><label class=\\'name\\'>Altitude:</label><input id=\\'altbox\\' class=\\'inputbox\\' type=\\'text\\' value=\\'" + 0 + "\\'/></div><br />";
-                message += "<div class=\\'infodiv\\'><label class=\\'name\\'>Type:</label><select class=\\'inputbox\\' name=\\'types\\'><option value=\\'takeoff\\'>Takeoff</option><option value=\\'waypoint\\'>Waypoint</option><option value=\\'loiter\\'>Loiter</option><option value=\\'land\\'>Land</option></select></div><br />";
-                
+                    var message = "";
+                    message += "<div class=\\"infodiv\\"><label class=\\"name\\">Latitude:</label><input id=\\"latbox\\" class=\\"inputbox\\" type=\\"text\\" value=\\"" + event.latLng.lat() + "\\"/></div><br />";
+                    message += "<div class=\\"infodiv\\"><label class=\\"name\\">Longitude:</label><input id=\\"lngbox\\" class=\\"inputbox\\" type=\\"text\\" value=\\"" + event.latLng.lng() + "\\"/></div><br />";
+                    message += "<div class=\\"infodiv\\"><label class=\\"name\\">Altitude:</label><input id=\\"altbox\\" class=\\"inputbox\\" type=\\"text\\" value=\\"" + 0 + "\\"/></div><br />";
+                    if(window.typeArray[index] == "Takeoff") {
+                        message += "<div class=\\"infodiv\\"><label class=\\"name\\">Type:</label><select class=\\"inputbox\\" name=\\"types\\"><option value=\\"takeoff\\" selected=\\"selected\\">Takeoff</option><option value=\\"waypoint\\">Waypoint</option><option value=\\"loiter\\">Loiter</option><option value=\\"land\\">Land</option></select></div><br />";
+                    }
+                    else if(window.typeArray[index] == "Waypoint") {
+                        message += "<div class=\\"infodiv\\"><label class=\\"name\\">Type:</label><select class=\\"inputbox\\" name=\\"types\\"><option value=\\"takeoff\\">Takeoff</option><option value=\\"waypoint\\" selected=\\"selected\\">Waypoint</option><option value=\\"loiter\\">Loiter</option><option value=\\"land\\">Land</option></select></div><br />";
+                    }
+                    else if(window.typeArray[index] == "Loiter") {
+                        message += "<div class=\\"infodiv\\"><label class=\\"name\\">Type:</label><select class=\\"inputbox\\" name=\\"types\\"><option value=\\"takeoff\\" >Takeoff</option><option value=\\"waypoint\\">Waypoint</option><option value=\\"loiter\\" selected=\\"selected\\">Loiter</option><option value=\\"land\\">Land</option></select></div><br />";
+                        message += "<div class=\\"infodiv\\"><label class=\\"name\\">Duration:</label><input id=\\"durbox\\" class=\\"inputbox\\" type=\\"text\\" value=\\"" + window.durationArray[index] + "\\" /><br />";
+                    }
+                    else {
+                        message += "<div class=\\"infodiv\\"><label class=\\"name\\">Type:</label><select class=\\"inputbox\\" name=\\"types\\"><option value=\\"takeoff\\" >Takeoff</option><option value=\\"waypoint\\">Waypoint</option><option value=\\"loiter\\">Loiter</option><option value=\\"land\\" selected=\\"selected\\">Land</option></select></div><br />";
+                    }
+                    
+                    window.infowindow.setContent(message);
+                    window.infowindow.setPosition(event.latLng);
+                    window.infowindow.open(map);
+                    window.isInfoWindowOpen = true;
 
-                window.infowindow.setContent(message);
-                window.infowindow.setPosition(event.latLng);
-                window.infowindow.open(map);
-                window.isInfoWindowOpen = true;
-            }
-        """
-        return js
-    
-    def _setup_context_menu(self):
-        js = """
-            function showContextMenu(event) {
-                // first remove existing context menu
-                $('.contextmenu').remove();
+                    $(".infodiv > .inputbox").keyup(function(event) {
+                        // enter key is pressed
+                        if(event.keyCode == 13) {
+                            var newpos = new google.maps.LatLng($("#latbox").val(), $("#lngbox").val());
+                            window.path.getPath().setAt(index, newpos);
+                            window.altitudeArray[index] = $("#altbox").val();
+                            if(window.typeArray[index] == "Loiter")
+                                window.durationArray[index] = $("#durbox").val();
+                            window.infowindow.setPosition(newpos);
+                            alert("values updatd");
+                        }
+                    }); //  inputbox event handler
 
-                var contextmenu;
-                var position = event.latLng;
-                contextmenu = document.createElement('div');
-                contextmenu.className = 'contextmenu';
-                contextmenu.innerHTML = "<button type=\\'button\\' id=\\'sendCoord\\' class=\\'btn\\'>Send Coordinates</button>";
-                contextmenu.innerHTML += "<button type=\\'button\\' id=\\'refresh\\' class=\\'btn\\'>Refresh</button>";
-                contextmenu.innerHTML += "<button type=\\'button\\' id=\\'delPoint\\' class=\\'btn\\'>Delete Waypoint</button>";
-                contextmenu.innerHTML += "<button type=\\'button\\' id=\\'delAllPoints\\' class=\\'btn\\'>Delete All Waypoints</button>";
-                $(window.map.getDiv()).append(contextmenu);
+                    $(".infodiv > select").change(function() {
+                        var optionSelected = "";
+                        $('select option:selected').each(function() {
+                            optionSelected += $(this).text();
+                        });
+                        if(optionSelected == "Loiter") {
+                            window.infowindow.close();
 
-                var clickedPosition = latlngToXY(position);
-                $('.contextmenu').css('left', clickedPosition.x);
-                $('.contextmenu').css('top', clickedPosition.y);
+                            var message = "";
+                            message += "<div class=\\"infodiv\\"><label class=\\"name\\">Latitude:</label><input id=\\"latbox\\" class=\\"inputbox\\" type=\\"text\\" value=\\"" + event.latLng.lat() + "\\"/></div><br />";
+                            message += "<div class=\\"infodiv\\"><label class=\\"name\\">Longitude:</label><input id=\\"lngbox\\" class=\\"inputbox\\" type=\\"text\\" value=\\"" + event.latLng.lng() + "\\"/></div><br />";
+                            message += "<div class=\\"infodiv\\"><label class=\\"name\\">Altitude:</label><input id=\\"altbox\\" class=\\"inputbox\\" type=\\"text\\" value=\\"" + 0 + "\\"/></div><br />";
+                            message += "<div class=\\"infodiv\\"><label class=\\"name\\">Type:</label><select class=\\"inputbox\\" name=\\"types\\"><option value=\\"takeoff\\" >Takeoff</option><option value=\\"waypoint\\">Waypoint</option><option value=\\"loiter\\" selected=\\"selected\\">Loiter</option><option value=\\"land\\">Land</option></select></div><br />";
+                            message += "<div class=\\"infodiv\\"><label class=\\"name\\">Duration:</label><input id=\\"durbox\\" class=\\"inputbox\\" type=\\"text\\" value=\\"" + window.durationArray[index] + "\\" /><br />";
 
-                contextmenu.style.visibility = "visible";
+                            window.infowindow.setContent(message);
+                            window.infowindow.open(window.map);
 
-                window.isContextMenuOpen = true;
+                            $(".infodiv > .inputbox").keyup(function(event) {
+                                // enter key is pressed
+                                if(event.keyCode == 13) {
+                                    var newpos = new google.maps.LatLng($("#latbox").val(), $("#lngbox").val());
+                                    window.path.getPath().setAt(index, newpos);
+                                    window.altitudeArray[index] = $("#altbox").val();
+                                    if(window.typeArray[index] == "Loiter")
+                                        window.durationArray[index] = $("#durbox").val();
+                                    window.infowindow.setPosition(newpos);
+                                    alert("values updatd");
+                                }
+                            }); // end inputbox event handler
+                        } // end select box event handler
 
-                $('#sendCoord').click(sendCoordinates);
-                $('#refresh').click(refresh);
-                $('#delPoint').click({param1: position},deletePoint);
-                $('#delAllPoints').click(deleteAllPoints);
-
-                //TODO: is this necessary?
-                //contextmenu.style.visibility = "visible";
-            } // end showContext menu()
-
-            function sendCoordinates() {
-               // var coordArray = [];
-               // for(var i = 0; i  < window.path.getPath().getLength(); i++) {
-               //     coordArray.push({
-               //         latitude: window.path.getPath().getAt(i).lat(),
-               //         longitude: window.path.getPath().getAt(i).lng(),
-               //         altitude: altitudeArray[i],
-               //         type: typeArray[i],
-               //         duration: durationArray[i]
-               //     });
-               // }
-               // $.post("http://localhost:5000",
-               // {
-               //     "data" : coordArray
-               // });
-               // $('.contextmenu').remove();
-            } // end sendCoordinates()
-
-            function refresh() {
-                location.reload();
-            } // end refresh()
-
-            function deletePoint(event) {
-                var position = event.data.param1;
-                var index = window.path.getPath().getArray().indexOf(position);
-                if(index != -1)
-                    window.path.getPath().removeAt(index);
-                else
-                    alert('point not in path');
-                $('.contextmenu').remove();
-            } // end deletePoints()
-
-            function deleteAllPoints() {
-                // TODO: complete function
-            } // end deleteAllPoints()
-
-            function latlngToXY(latlng) {
-                var scale = Math.pow(2, window.map.getZoom());
-                var nwlatlng = new google.maps.LatLng(
-                    window.map.getBounds().getNorthEast().lat(),
-                    window.map.getBounds().getSouthWest().lng()
-                );
-                var nwpoint = window.map.getProjection().fromLatLngToPoint(nwlatlng);
-                var clickpoint = window.map.getProjection().fromLatLngToPoint(latlng);
-                var offset = new google.maps.Point(
-                    (clickpoint.x - nwpoint.x) * scale,
-                    (clickpoint.y - nwpoint.y) * scale
-                );
-                
-                return offset;
-            }
+                        window.typeArray[index] = optionSelected;
+                        window.durationArray[index] = 0;
+                    });
+            }); // end show coordinate event listener
         """
         return js
 
-    def _setup_event_listeners(self):
+    def _setup_add_point_event(self):
         js = """
-            google.maps.event.addListener(window.map, 'click', function(event) {
+            google.maps.event.addListener(window.map, "click", function(event) {
                 if(window.isContextMenuOpen) {
-                    $('.contextmenu').remove();
+                    $(".contextmenu").remove();
                     window.isContextMenuOpen = false;
                     return;
                 }
@@ -302,22 +274,14 @@ class PyGmap(object):
                 }
                 window.path.getPath().push(event.latLng);                
             });
+               
         """
 
-        js += """
-            google.maps.event.addListener(window.map, 'rightclick', showContextMenu);
-        """
+        return js
 
-        js += """
-            google.maps.event.addListener(window.path, 'rightclick', showContextMenu);
-        """
-
-        js += """
-            google.maps.event.addListener(window.path, 'click', showCoordinate);
-        """
-
-        js += """
-            google.maps.event.addListener(window.path.getPath(), 'insert_at', function(index) {
+    def _setup_insert_event(self):
+        js = """
+            google.maps.event.addListener(window.path.getPath(), "insert_at", function(index) {
                 // insert at beginning of path
                 if(index == 0) {
                     window.altitudeArray.push(index);   // TODO: properly set altitude
@@ -362,12 +326,14 @@ class PyGmap(object):
                 }
             });
         """
+        return js
 
-        js += """
+    def _setup_delete_event(self):
+        js = """
             /*
-            * NOTE: google maps api decreases length of mvc array beore 'remove_at' event gets called
+            * NOTE: google maps api decreases length of mvc array beore "remove_at" event gets called
             */
-            google.maps.event.addListener(window.path.getPath(), 'remove_at', function(index) {
+            google.maps.event.addListener(window.path.getPath(), "remove_at", function(index) {
                 // remove first waypoint in path
                 if(index == 0) {
                     window.altitudeArray.shift();
@@ -411,6 +377,97 @@ class PyGmap(object):
         """
         return js
 
+    def _setup_context_menu_event(self):
+        js = """
+            function showContextMenu(event) {
+                // first remove existing context menu
+                $(".contextmenu").remove();
+
+                var contextmenu;
+                var position = event.latLng;
+                contextmenu = document.createElement("div");
+                contextmenu.className = "contextmenu";
+                contextmenu.innerHTML = "<button type=\\"button\\" id=\\"sendCoord\\" class=\\"btn\\">Send Coordinates</button>";
+                contextmenu.innerHTML += "<button type=\\"button\\" id=\\"refresh\\" class=\\"btn\\">Refresh</button>";
+                contextmenu.innerHTML += "<button type=\\"button\\" id=\\"delPoint\\" class=\\"btn\\">Delete Waypoint</button>";
+                contextmenu.innerHTML += "<button type=\\"button\\" id=\\"delAllPoints\\" class=\\"btn\\">Delete All Waypoints</button>";
+                $(window.map.getDiv()).append(contextmenu);
+
+                var clickedPosition = latlngToXY(position);
+                $(".contextmenu").css("left", clickedPosition.x);
+                $(".contextmenu").css("top", clickedPosition.y);
+
+                contextmenu.style.visibility = "visible";
+
+                window.isContextMenuOpen = true;
+
+                $("#sendCoord").click(sendCoordinates);
+                $("#refresh").click(refresh);
+                $("#delPoint").click({param1: position},deletePoint);
+                $("#delAllPoints").click(deleteAllPoints);
+
+                //TODO: is this necessary?
+                //contextmenu.style.visibility = "visible";
+            } // end showContext menu()
+
+            function sendCoordinates() {
+               // var coordArray = [];
+               // for(var i = 0; i  < window.path.getPath().getLength(); i++) {
+               //     coordArray.push({
+               //         latitude: window.path.getPath().getAt(i).lat(),
+               //         longitude: window.path.getPath().getAt(i).lng(),
+               //         altitude: altitudeArray[i],
+               //         type: typeArray[i],
+               //         duration: durationArray[i]
+               //     });
+               // }
+               // $.post("http://localhost:5000",
+               // {
+               //     "data" : coordArray
+               // });
+               // $(".contextmenu").remove();
+            } // end sendCoordinates()
+
+            function refresh() {
+                location.reload();
+            } // end refresh()
+
+            function deletePoint(event) {
+                var position = event.data.param1;
+                var index = window.path.getPath().getArray().indexOf(position);
+                if(index != -1)
+                    window.path.getPath().removeAt(index);
+                else
+                    alert("point not in path");
+                $(".contextmenu").remove();
+            } // end deletePoints()
+
+            function deleteAllPoints() {
+                window.path.getPath().clear();
+                window.altitudeArray = [];
+                window.typeArray = [];
+                window.durationArray = [];
+                $(".contextmenu").remove();
+            } // end deleteAllPoints()
+
+            function latlngToXY(latlng) {
+                var scale = Math.pow(2, window.map.getZoom());
+                var nwlatlng = new google.maps.LatLng(
+                    window.map.getBounds().getNorthEast().lat(),
+                    window.map.getBounds().getSouthWest().lng()
+                );
+                var nwpoint = window.map.getProjection().fromLatLngToPoint(nwlatlng);
+                var clickpoint = window.map.getProjection().fromLatLngToPoint(latlng);
+                var offset = new google.maps.Point(
+                    (clickpoint.x - nwpoint.x) * scale,
+                    (clickpoint.y - nwpoint.y) * scale
+                );
+                
+                return offset;
+            } // end latlngToXY()
+        """
+        return js
+
     #----------------------------------------------------------SET UP HTML---------
 
     def _get_html(self):
@@ -418,6 +475,8 @@ class PyGmap(object):
         <!DOCTYPE html>
         <html>
             <head>
+                <meta name="viewport" content="initial-scale=1.0, user-scalable=no"/>
+                <meta charset="utf-8">
                 <style text="text/css">
                     html {height: 100%%;}
                     body {height: 100%%; margin: 0, padding: 0}
@@ -472,70 +531,74 @@ class PyGmap(object):
 
 #------------------------------------------------------GOOGLE MAPS API OBJECTS-------
 
-Coordinate = collections.namedtuple('Coordinate', 'latitude longitude altitude ctype duration')
+Coordinate = collections.namedtuple("Coordinate", "latitude longitude altitude ctype duration")
+Map = collections.namedtuple("Map", "options")
+Marker = collections.namedtuple("Marker", "options")
+Polygon = collections.namedtuple("Polygon", "options")
+Polyline = collections.namedtuple("Polyline", "options")
 
-class Map(object):
+#class Map(object):
     
-    ROADMAP = "ROADMAP"
-    HYBRID = "HYBRID"
-    SATELLITE = "SATELLITE"
-    TERRAIN = "TERRAIN"
+    #ROADMAP = "ROADMAP"
+    #HYBRID = "HYBRID"
+    #SATELLITE = "SATELLITE"
+    #TERRAIN = "TERRAIN"
 
-    def __init__(self,options):
-        self._options = options
+    #def __init__(self,options):
+        #self._options = options
     
-    def get_map_options(self):
-        return self._options
-    def set_map_options(self, options):
-        self._options = options
-    def del_map_options(self):
-        del self._options
-    map_options = property(get_map_options, set_map_options, del_map_options)
+    #def get_map_options(self):
+        #return self._options
+    #def set_map_options(self, options):
+        #self._options = options
+    #def del_map_options(self):
+        #del self._options
+    #map_options = property(get_map_options, set_map_options, del_map_options)
 
-    def update_options(self, options):
-        self._options.update(options)
+    #def update_options(self, options):
+        #self._options.update(options)
 
-class Polygon(object):
-    def __init__(self, options):
-        self._options
+#class Polygon(object):
+    #def __init__(self, options):
+        #self._options
 
-    def get_polygon_options(self):
-        return self._options
-    def set_polygon_options(self, options):
-        self._options = options
-    def del_polygon_options(self):
-        del self._options
-    polygon_options = property(get_polygon_options, set_polygon_options, del_polygon_options)
+    #def get_polygon_options(self):
+        #return self._options
+    #def set_polygon_options(self, options):
+        #self._options = options
+    #def del_polygon_options(self):
+        #del self._options
+    #polygon_options = property(get_polygon_options, set_polygon_options, del_polygon_options)
 
-    def update_options(self, options):
-        self._options.update(options)
+    #def update_options(self, options):
+        #self._options.update(options)
 
-class PolyLine(object):
-    def __init__(self, options):
-        self._options = options
+#class PolyLine(object):
+    #def __init__(self, options):
+        #self._options = options
     
-    def get_polyline_options(self):
-        return self._options
-    def set_polyline_options(self, options):
-        self._options = options
-    def del_polyline_options(self):
-        del self._options
-    polyline_options = property(get_polyline_options, set_polyline_options, del_polyline_options)
+    #def get_polyline_options(self):
+        #return self._options
+    #def set_polyline_options(self, options):
+        #self._options = options
+    #def del_polyline_options(self):
+        #del self._options
+    #polyline_options = property(get_polyline_options, set_polyline_options, del_polyline_options)
 
-    def update_options(self, options):
-        self._options.update(options)
+    #def update_options(self, options):
+        #self._options.update(options)
 
-class Marker(object):
-    def __init__(self, options):
-        self._options
+#class Marker(object):
+    #def __init__(self, options):
+        #self._options
 
-    def get_marker_options(self):
-        return self._options
-    def set_marker_options(self, options):
-        self._options = options
-    def del_marker_options(self):
-        del self._options
-    marker_options = property(get_marker_options, set_marker_options, del_marker_options)
+    #def get_marker_options(self):
+        #return self._options
+    #def set_marker_options(self, options):
+        #self._options = options
+    #def del_marker_options(self):
+        #del self._options
+    #marker_options = property(get_marker_options, set_marker_options, del_marker_options)
 
-    def update_options(self, options):
-        self._options.update(options)
+    #def update_options(self, options):
+        #self._options.update(options)
