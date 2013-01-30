@@ -1,4 +1,4 @@
-from pygmap import PyGmap, Coordinate, Map, Polyline
+from pygmap import PyGmap, Coordinate, Map, Polyline, Marker
 
 if __name__=="__main__":
 
@@ -23,8 +23,15 @@ if __name__=="__main__":
     }
     path = Polyline(options = path_options)
 
+    marker_options = {
+        "position"  : Coordinate(latitude=0, longitude=0, altitude=10, ctype="waypoint", duration=0),
+        "title"     : "marker 1"
+    }
+    marker = Marker(options = marker_options)
+
     API_KEY = "AIzaSyDUqZDJn8yWjIKJ4nUsHQGuEAvZHar41rs"
 
     pygmap = PyGmap(map_, API_KEY, path)
+    pygmap.add_marker(marker)
 
     pygmap.write()

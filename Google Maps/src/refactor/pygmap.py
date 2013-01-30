@@ -21,8 +21,6 @@ class PyGmap(object):
         self._map = map_
         self._polyline = path
         self._display_polyline = True
-        self._polygon_count = 0
-        self._polygon_list = []
     
     def write(self, html_file="pygmap.html", js_file="pygmap.js"):
         """
@@ -41,13 +39,6 @@ class PyGmap(object):
         """
         self._display_polyline = switch
 
-    def add_polygon(self, polygon):
-        """
-        adds polygon to list to be displayed on map
-        """
-        self._polygon_count += 1
-        self._polygon_list.append(polygon)
-    
     def add_marker(self, marker):
         """
         add marker to be displayed on map
@@ -67,6 +58,7 @@ class PyGmap(object):
 
         self._js += self._setup_map()
         self._js += self._setup_path()
+        self._js += self._setup_marker()
 
         self._js += self._setup_add_point_event()
         self._js += self._setup_insert_event()
@@ -175,8 +167,33 @@ class PyGmap(object):
         else:
             pass
 
-    def _setup_polygon(self):
-        js = ""
+    def _setup_marker(self):
+        js = """
+            var markerOptions = {
+        """
+
+        for key,value in self._marker.options.items():
+            if key is "position":
+                js += """
+                    %s : new google.maps.LatLng(%d,%d),
+                """ % (key, value.latitude, value.longitude)
+                continue
+
+            if type(value) is str:
+                js += """
+                    %s : '%s',
+                """ % (key, value)
+                continue
+
+            js += """
+                %s : %s,
+            """ (key, value)
+
+        js += """
+            }; // end markerOptions
+            window.marker = new google.maps.Marker(markerOptions);
+            window.marker.setMap(window.map);
+        """
         return js
 
     def _setup_show_coordinate_event(self):
@@ -534,7 +551,6 @@ class PyGmap(object):
 Coordinate = collections.namedtuple("Coordinate", "latitude longitude altitude ctype duration")
 Map = collections.namedtuple("Map", "options")
 Marker = collections.namedtuple("Marker", "options")
-Polygon = collections.namedtuple("Polygon", "options")
 Polyline = collections.namedtuple("Polyline", "options")
 
 #class Map(object):

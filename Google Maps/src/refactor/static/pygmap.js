@@ -56,6 +56,16 @@
                         typeArray.push("land");
                         durationArray.push(0);
                     
+            var markerOptions = {
+        
+                    position : new google.maps.LatLng(0,0),
+                
+                    title : 'marker 1',
+                
+            }; // end markerOptions
+            window.marker = new google.maps.Marker(markerOptions);
+            window.marker.setMap(window.map);
+        
             google.maps.event.addListener(window.map, "click", function(event) {
                 if(window.isContextMenuOpen) {
                     $(".contextmenu").remove();
