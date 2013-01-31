@@ -21,7 +21,7 @@ The Javascript code produced by Gmappy can:
 TODO
 * send data from python to javascript over server
 * send data from python to mavlink
-* retrieve data from python to mavlink
+* retrieve data from mavlink
 
 Dependencies 
 ------------
