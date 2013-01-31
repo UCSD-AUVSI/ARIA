@@ -1,5 +1,6 @@
 from flask import Flask, url_for, request
 #from MAVProxy import mavproxy_headless, mavproxy
+
 app = Flask(__name__)
 
 app.config["SERVER_NAME"] = "localhost:5000"
@@ -11,11 +12,11 @@ def getFlightPlan():
 
     while True:
 
-        lat = "data[" + str(index) +"][lat]"
-        lng = "data["+ str(index) +"][lng]"
+        lat = "data[" + str(index) +"][latitude]"
+        lng = "data["+ str(index) +"][longitude]"
         typeField = "data[" + str(index) + "][type]"
-        altitude = "data[" + str(index) + "][alt]"
-        duration = "data[" + str(index) + "][dur]"
+        altitude = "data[" + str(index) + "][altitude]"
+        duration = "data[" + str(index) + "][duration]"
         if lat in request.form.keys():
             list += [{
                 "latitude": request.form[lat],
@@ -41,8 +42,3 @@ def getFlightPlan():
     #print "after loading from waypoints"
 
     return list
-
-with app.app_context():
-    url_for('static', filename='gmaps.html')
-if __name__ == "__main__":
-    app.run()

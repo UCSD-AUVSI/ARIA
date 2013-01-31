@@ -1,10 +1,7 @@
 import os
 import collections
 
-#
-# THIS CLASS NEEDS TO BE REFACTORED
-#
-class PyGmap(object):
+class Gmappy(object):
     """
     simple python wrapper for google maps api
     """
@@ -22,7 +19,7 @@ class PyGmap(object):
         self._polyline = path
         self._display_polyline = True
     
-    def write(self, html_file="pygmap.html", js_file="pygmap.js"):
+    def write(self, html_file="gmappy.html", js_file="gmappy.js"):
         """
         writes javascript and html to files
         file names can be passed in as parameters
@@ -99,7 +96,7 @@ class PyGmap(object):
             if key == "mapTypeId":
                 js += """
                     %s : google.maps.MapTypeId.%s,
-                """ % (key, value)
+                """ % (key, value.upper())
 
             elif type(value) is Coordinate:
                 js += """
@@ -162,7 +159,7 @@ class PyGmap(object):
                         altitudeArray.push(%i);
                         typeArray.push("%s");
                         durationArray.push(%i);
-                    """ % (point.altitude, point.ctype, point.duration)
+                    """ % (point.altitude, point.ctype.capitalize(), point.duration)
             return js
         else:
             pass
@@ -213,7 +210,7 @@ class PyGmap(object):
                     }
                     else if(window.typeArray[index] == "Loiter") {
                         message += "<div class=\\"infodiv\\"><label class=\\"name\\">Type:</label><select class=\\"inputbox\\" name=\\"types\\"><option value=\\"takeoff\\" >Takeoff</option><option value=\\"waypoint\\">Waypoint</option><option value=\\"loiter\\" selected=\\"selected\\">Loiter</option><option value=\\"land\\">Land</option></select></div><br />";
-                        message += "<div class=\\"infodiv\\"><label class=\\"name\\">Duration:</label><input id=\\"durbox\\" class=\\"inputbox\\" type=\\"text\\" value=\\"" + window.durationArray[index] + "\\" /><br />";
+                        message += "<div class=\\"infodiv\\"><label class=\\"name\\">Duration (s):</label><input id=\\"durbox\\" class=\\"inputbox\\" type=\\"text\\" value=\\"" + window.durationArray[index] + "\\" /><br />";
                     }
                     else {
                         message += "<div class=\\"infodiv\\"><label class=\\"name\\">Type:</label><select class=\\"inputbox\\" name=\\"types\\"><option value=\\"takeoff\\" >Takeoff</option><option value=\\"waypoint\\">Waypoint</option><option value=\\"loiter\\">Loiter</option><option value=\\"land\\" selected=\\"selected\\">Land</option></select></div><br />";
@@ -250,7 +247,7 @@ class PyGmap(object):
                             message += "<div class=\\"infodiv\\"><label class=\\"name\\">Longitude:</label><input id=\\"lngbox\\" class=\\"inputbox\\" type=\\"text\\" value=\\"" + event.latLng.lng() + "\\"/></div><br />";
                             message += "<div class=\\"infodiv\\"><label class=\\"name\\">Altitude:</label><input id=\\"altbox\\" class=\\"inputbox\\" type=\\"text\\" value=\\"" + 0 + "\\"/></div><br />";
                             message += "<div class=\\"infodiv\\"><label class=\\"name\\">Type:</label><select class=\\"inputbox\\" name=\\"types\\"><option value=\\"takeoff\\" >Takeoff</option><option value=\\"waypoint\\">Waypoint</option><option value=\\"loiter\\" selected=\\"selected\\">Loiter</option><option value=\\"land\\">Land</option></select></div><br />";
-                            message += "<div class=\\"infodiv\\"><label class=\\"name\\">Duration:</label><input id=\\"durbox\\" class=\\"inputbox\\" type=\\"text\\" value=\\"" + window.durationArray[index] + "\\" /><br />";
+                            message += "<div class=\\"infodiv\\"><label class=\\"name\\">Duration (s):</label><input id=\\"durbox\\" class=\\"inputbox\\" type=\\"text\\" value=\\"" + window.durationArray[index] + "\\" /><br />";
 
                             window.infowindow.setContent(message);
                             window.infowindow.open(window.map);
@@ -428,21 +425,26 @@ class PyGmap(object):
             } // end showContext menu()
 
             function sendCoordinates() {
-               // var coordArray = [];
-               // for(var i = 0; i  < window.path.getPath().getLength(); i++) {
-               //     coordArray.push({
-               //         latitude: window.path.getPath().getAt(i).lat(),
-               //         longitude: window.path.getPath().getAt(i).lng(),
-               //         altitude: altitudeArray[i],
-               //         type: typeArray[i],
-               //         duration: durationArray[i]
-               //     });
-               // }
-               // $.post("http://localhost:5000",
-               // {
-               //     "data" : coordArray
-               // });
-               // $(".contextmenu").remove();
+                if(window.path.getPath().getLength() == 0) {
+                    alert("You do not have a path to send!");
+                    $('.contextmenu').remove();
+                    return;
+                }
+                var coordArray = [];
+                for(var i = 0; i  < window.path.getPath().getLength(); i++) {
+                    coordArray.push({
+                        latitude: window.path.getPath().getAt(i).lat(),
+                        longitude: window.path.getPath().getAt(i).lng(),
+                        altitude: altitudeArray[i],
+                        type: typeArray[i],
+                        duration: durationArray[i]
+                    });
+                }
+                $.post("http://localhost:5000",
+                {
+                    "data" : coordArray
+                });
+                $(".contextmenu").remove();
             } // end sendCoordinates()
 
             function refresh() {
@@ -537,7 +539,7 @@ class PyGmap(object):
                 </style>
                 <script type="text/javascript" src="https://maps.googleapis.com/maps/api/js?key=%s&sensor=false"></script>
                 <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.8.2/jquery.min.js"></script>
-                <script type="text/javascript" src="pygmap.js"></script>
+                <script type="text/javascript" src="gmappy.js"></script>
             </head>
             <body onload="initialize()">
                 <div id="map_canvas" style="width: 100%%; height: 100%%;"></div>

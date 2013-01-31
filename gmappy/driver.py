@@ -1,4 +1,26 @@
-from pygmap import PyGmap, Coordinate, Map, Polyline, Marker
+from PyQt4 import QtWebKit, QtCore, QtGui
+from flask import Flask, url_for
+import threading
+import os
+import sys
+
+from gmappy import Gmappy, Coordinate, Map, Polyline, Marker
+from UiWindow import Ui_MainWindow
+import server
+
+with server.app.app_context():
+    url_for('static', filename='gmappy.html')
+
+def ser():
+    server.app.run()
+
+def ui():
+    app = QtGui.QApplication(sys.argv)
+    MainWindow = QtGui.QMainWindow()
+    ui = Ui_MainWindow()
+    ui.setupUi(MainWindow)
+    MainWindow.show()
+    sys.exit(app.exec_())
 
 if __name__=="__main__":
 
@@ -7,7 +29,7 @@ if __name__=="__main__":
     map_options = {
         "center"    : center,
         "zoom"      : 5,
-        "mapTypeId" : 'ROADMAP',
+        "mapTypeId" : 'roadmap',
     }
     map_ = Map(options = map_options)
 
@@ -31,7 +53,14 @@ if __name__=="__main__":
 
     API_KEY = "AIzaSyDUqZDJn8yWjIKJ4nUsHQGuEAvZHar41rs"
 
-    pygmap = PyGmap(map_, API_KEY, path)
-    pygmap.add_marker(marker)
+    gmappy = Gmappy(map_, API_KEY, path)
+    gmappy.add_marker(marker)
 
-    pygmap.write()
+    gmappy.write()
+
+    uiThread = threading.Thread(name="ui thread", target=ui)
+    serverThread = threading.Thread(name="server thread", target=ser)
+    serverThread.setDaemon(True)
+
+    serverThread.start()
+    ui()

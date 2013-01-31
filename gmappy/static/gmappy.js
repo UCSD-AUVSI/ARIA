@@ -41,19 +41,19 @@
                 window.path = new google.maps.Polyline(pathOptions);
             
                         altitudeArray.push(0);
-                        typeArray.push("takeoff");
+                        typeArray.push("Takeoff");
                         durationArray.push(0);
                     
                         altitudeArray.push(0);
-                        typeArray.push("waypoint");
+                        typeArray.push("Waypoint");
                         durationArray.push(0);
                     
                         altitudeArray.push(0);
-                        typeArray.push("loiter");
+                        typeArray.push("Loiter");
                         durationArray.push(5);
                     
                         altitudeArray.push(0);
-                        typeArray.push("land");
+                        typeArray.push("Land");
                         durationArray.push(0);
                     
             var markerOptions = {
@@ -186,7 +186,7 @@
                     }
                     else if(window.typeArray[index] == "Loiter") {
                         message += "<div class=\"infodiv\"><label class=\"name\">Type:</label><select class=\"inputbox\" name=\"types\"><option value=\"takeoff\" >Takeoff</option><option value=\"waypoint\">Waypoint</option><option value=\"loiter\" selected=\"selected\">Loiter</option><option value=\"land\">Land</option></select></div><br />";
-                        message += "<div class=\"infodiv\"><label class=\"name\">Duration:</label><input id=\"durbox\" class=\"inputbox\" type=\"text\" value=\"" + window.durationArray[index] + "\" /><br />";
+                        message += "<div class=\"infodiv\"><label class=\"name\">Duration (s):</label><input id=\"durbox\" class=\"inputbox\" type=\"text\" value=\"" + window.durationArray[index] + "\" /><br />";
                     }
                     else {
                         message += "<div class=\"infodiv\"><label class=\"name\">Type:</label><select class=\"inputbox\" name=\"types\"><option value=\"takeoff\" >Takeoff</option><option value=\"waypoint\">Waypoint</option><option value=\"loiter\">Loiter</option><option value=\"land\" selected=\"selected\">Land</option></select></div><br />";
@@ -223,7 +223,7 @@
                             message += "<div class=\"infodiv\"><label class=\"name\">Longitude:</label><input id=\"lngbox\" class=\"inputbox\" type=\"text\" value=\"" + event.latLng.lng() + "\"/></div><br />";
                             message += "<div class=\"infodiv\"><label class=\"name\">Altitude:</label><input id=\"altbox\" class=\"inputbox\" type=\"text\" value=\"" + 0 + "\"/></div><br />";
                             message += "<div class=\"infodiv\"><label class=\"name\">Type:</label><select class=\"inputbox\" name=\"types\"><option value=\"takeoff\" >Takeoff</option><option value=\"waypoint\">Waypoint</option><option value=\"loiter\" selected=\"selected\">Loiter</option><option value=\"land\">Land</option></select></div><br />";
-                            message += "<div class=\"infodiv\"><label class=\"name\">Duration:</label><input id=\"durbox\" class=\"inputbox\" type=\"text\" value=\"" + window.durationArray[index] + "\" /><br />";
+                            message += "<div class=\"infodiv\"><label class=\"name\">Duration (s):</label><input id=\"durbox\" class=\"inputbox\" type=\"text\" value=\"" + window.durationArray[index] + "\" /><br />";
 
                             window.infowindow.setContent(message);
                             window.infowindow.open(window.map);
@@ -283,21 +283,26 @@
             } // end showContext menu()
 
             function sendCoordinates() {
-               // var coordArray = [];
-               // for(var i = 0; i  < window.path.getPath().getLength(); i++) {
-               //     coordArray.push({
-               //         latitude: window.path.getPath().getAt(i).lat(),
-               //         longitude: window.path.getPath().getAt(i).lng(),
-               //         altitude: altitudeArray[i],
-               //         type: typeArray[i],
-               //         duration: durationArray[i]
-               //     });
-               // }
-               // $.post("http://localhost:5000",
-               // {
-               //     "data" : coordArray
-               // });
-               // $(".contextmenu").remove();
+                if(window.path.getPath().getLength() == 0) {
+                    alert("You do not have a path to send!");
+                    $('.contextmenu').remove();
+                    return;
+                }
+                var coordArray = [];
+                for(var i = 0; i  < window.path.getPath().getLength(); i++) {
+                    coordArray.push({
+                        latitude: window.path.getPath().getAt(i).lat(),
+                        longitude: window.path.getPath().getAt(i).lng(),
+                        altitude: altitudeArray[i],
+                        type: typeArray[i],
+                        duration: durationArray[i]
+                    });
+                }
+                $.post("http://localhost:5000",
+                {
+                    "data" : coordArray
+                });
+                $(".contextmenu").remove();
             } // end sendCoordinates()
 
             function refresh() {

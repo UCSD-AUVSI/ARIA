@@ -1,1 +1,0 @@
-python C:\Python27\Lib\site-packages\PyQt4\uic\pyuic.py "C:\Users\NumberSix\Documents\GitHub\GoogleMapsPy\ui\UiWindow.ui" -o "C:\Users\NumberSix\Documents\GitHub\GoogleMapsPy\ui\UiWindow.py"
