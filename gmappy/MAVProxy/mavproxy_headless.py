@@ -11,6 +11,7 @@ import sys, os, struct, math, time, socket
 import fnmatch, errno, threading
 import serial, Queue, select
 import time
+import mavlink
 from noconsole import NoConsole
 
 # The modules subdirectory contains the modules that come with
@@ -387,20 +388,27 @@ def process_waypoint_request(m, master):
 
 def load_waypoints_from_array(waypoints):
   def convert(waypoint,index):
-    return mavlink.MAVLink_waypoint_message(mpstate_status.target_system,
-                                            mpstate_status.target_component,
-                                            index, # seq
-                                            "GPS", # frame!
-                                            "loiter", # command!
-                                            0, # current
-                                            1, # autocontinue
-                                            0.0, # param1
-                                            0.0, # param2
-                                            0.0, # param3
-                                            0.0, # param4
-                                            waypoint.lat,
-                                            waypoint.lon,
-                                            waypoint.alt)
+    try:
+      converted_message = mavlink.MAVLink_waypoint_message(
+                                              mpstate.status.target_system,
+                                              mpstate.status.target_component,
+                                              index, # seq
+                                              0, # frame!
+                                              16, # command!
+                                              0, # current
+                                              1, # autocontinue
+                                              float(0.0), # param1
+                                              float(0.0), # param2
+                                              float(0.0), # param3
+                                              float(0.0), # param4
+                                              float(waypoint["latitude"]),
+                                              float(waypoint["longitude"]),
+                                              float(waypoint["altitude"]))
+    except:
+      e = sys.exc_info()[0]
+      print e
+    return converted_message
+
   mpstate.status.wploader.target_system = mpstate.status.target_system
   mpstate.status.wploader.target_component = mpstate.status.target_component
   index = 0
@@ -409,7 +417,7 @@ def load_waypoints_from_array(waypoints):
     index += 1
   mpstate.master().waypoint_clear_all_send()
   if mpstate.status.wploader.count() == 0:
-      return
+    return
 
   mpstate.status.loading_waypoints = True
   mpstate.status.loading_waypoint_lasttime = time.time()

@@ -1,5 +1,5 @@
 from flask import Flask, url_for, request
-#from MAVProxy import mavproxy_headless, mavproxy
+from MAVProxy import mavproxy_headless, mavproxy
 
 app = Flask(__name__)
 
@@ -37,8 +37,10 @@ def getFlightPlan():
         print "duration: " + str(coordDict["duration"])
         print
 
-    #print "before loading waypoints"
-    #mavproxy_headless.load_waypoints_from_array(list)
-    #print "after loading from waypoints"
+    print "before loading waypoints"
+    mavproxy_headless.load_waypoints_from_array(list)
+    print "after loading from waypoints"
+
+    mavproxy_headless.save_waypoints("output.txt")
 
     return list
