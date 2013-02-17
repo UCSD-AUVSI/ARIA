@@ -12,6 +12,7 @@ import fnmatch, errno, threading
 import serial, Queue, select
 import time
 import mavlink
+from errors import NoAutoPilotError
 from noconsole import NoConsole
 
 # The modules subdirectory contains the modules that come with
@@ -1709,188 +1710,189 @@ def run_script(scriptfile):
     f.close()
 
 
+try:
+    from optparse import OptionParser
+    parser = OptionParser("mavproxy.py [options]")
 
-from optparse import OptionParser
-parser = OptionParser("mavproxy.py [options]")
+    parser.add_option("--master",dest="master", action='append', help="MAVLink master port", default=[])
+    parser.add_option("--baudrate", dest="baudrate", type='int',
+                      help="master port baud rate", default=115200)
+    parser.add_option("--out",   dest="output", help="MAVLink output port",
+                      action='append', default=[])
+    parser.add_option("--sitl", dest="sitl",  default=None, help="SITL output port")
+    parser.add_option("--streamrate",dest="streamrate", default=4, type='int',
+                      help="MAVLink stream rate")
+    parser.add_option("--source-system", dest='SOURCE_SYSTEM', type='int',
+                      default=255, help='MAVLink source system for this GCS')
+    parser.add_option("--target-system", dest='TARGET_SYSTEM', type='int',
+                      default=1, help='MAVLink target master system')
+    parser.add_option("--target-component", dest='TARGET_COMPONENT', type='int',
+                      default=1, help='MAVLink target master component')
+    parser.add_option("--logfile", dest="logfile", help="MAVLink master logfile",
+                      default='mav.tlog')
+    parser.add_option("-a", "--append-log", dest="append_log", help="Append to log files",
+                      action='store_true', default=False)
+    parser.add_option("--quadcopter", dest="quadcopter", help="use quadcopter controls",
+                      action='store_true', default=False)
+    parser.add_option("--setup", dest="setup", help="start in setup mode",
+                      action='store_true', default=False)
+    parser.add_option("--nodtr", dest="nodtr", help="disable DTR drop on close",
+                      action='store_true', default=False)
+    parser.add_option("--show-errors", dest="show_errors", help="show MAVLink error packets",
+                      action='store_true', default=False)
+    parser.add_option("--speech", dest="speech", help="use text to speach",
+                      action='store_true', default=False)
+    parser.add_option("--num-cells", dest="num_cells", help="number of LiPo battery cells",
+                      type='int', default=0)
+    parser.add_option("--aircraft", dest="aircraft", help="aircraft name", default=None)
+    parser.add_option("--cmd", dest="cmd", help="initial commands", default=None)
+    parser.add_option("--console", action='store_true', help="use GUI console")
+    parser.add_option("--map", action='store_true', help="load map module")
+    parser.add_option(
+        '--load-module',
+        action='append',
+        default=[],
+        help='Load the specified module. Can be used multiple times, or with a comma separated list')
+    parser.add_option("--mav09", action='store_true', default=False, help="Use MAVLink protocol 0.9")
+    parser.add_option("--auto-protocol", action='store_true', default=False, help="Auto detect MAVLink protocol version")
+    parser.add_option("--nowait", action='store_true', default=False, help="don't wait for HEARTBEAT on startup")
+    parser.add_option("--continue", dest='continue_mode', action='store_true', default=False, help="continue logs")
 
-parser.add_option("--master",dest="master", action='append', help="MAVLink master port", default=[])
-parser.add_option("--baudrate", dest="baudrate", type='int',
-                  help="master port baud rate", default=115200)
-parser.add_option("--out",   dest="output", help="MAVLink output port",
-                  action='append', default=[])
-parser.add_option("--sitl", dest="sitl",  default=None, help="SITL output port")
-parser.add_option("--streamrate",dest="streamrate", default=4, type='int',
-                  help="MAVLink stream rate")
-parser.add_option("--source-system", dest='SOURCE_SYSTEM', type='int',
-                  default=255, help='MAVLink source system for this GCS')
-parser.add_option("--target-system", dest='TARGET_SYSTEM', type='int',
-                  default=1, help='MAVLink target master system')
-parser.add_option("--target-component", dest='TARGET_COMPONENT', type='int',
-                  default=1, help='MAVLink target master component')
-parser.add_option("--logfile", dest="logfile", help="MAVLink master logfile",
-                  default='mav.tlog')
-parser.add_option("-a", "--append-log", dest="append_log", help="Append to log files",
-                  action='store_true', default=False)
-parser.add_option("--quadcopter", dest="quadcopter", help="use quadcopter controls",
-                  action='store_true', default=False)
-parser.add_option("--setup", dest="setup", help="start in setup mode",
-                  action='store_true', default=False)
-parser.add_option("--nodtr", dest="nodtr", help="disable DTR drop on close",
-                  action='store_true', default=False)
-parser.add_option("--show-errors", dest="show_errors", help="show MAVLink error packets",
-                  action='store_true', default=False)
-parser.add_option("--speech", dest="speech", help="use text to speach",
-                  action='store_true', default=False)
-parser.add_option("--num-cells", dest="num_cells", help="number of LiPo battery cells",
-                  type='int', default=0)
-parser.add_option("--aircraft", dest="aircraft", help="aircraft name", default=None)
-parser.add_option("--cmd", dest="cmd", help="initial commands", default=None)
-parser.add_option("--console", action='store_true', help="use GUI console")
-parser.add_option("--map", action='store_true', help="load map module")
-parser.add_option(
-    '--load-module',
-    action='append',
-    default=[],
-    help='Load the specified module. Can be used multiple times, or with a comma separated list')
-parser.add_option("--mav09", action='store_true', default=False, help="Use MAVLink protocol 0.9")
-parser.add_option("--auto-protocol", action='store_true', default=False, help="Auto detect MAVLink protocol version")
-parser.add_option("--nowait", action='store_true', default=False, help="don't wait for HEARTBEAT on startup")
-parser.add_option("--continue", dest='continue_mode', action='store_true', default=False, help="continue logs")
+    (opts, args) = parser.parse_args()
 
-(opts, args) = parser.parse_args()
+    if opts.mav09:
+        os.environ['MAVLINK09'] = '1'
+    import mavutil, mavwp, mavparm
 
-if opts.mav09:
-    os.environ['MAVLINK09'] = '1'
-import mavutil, mavwp, mavparm
+    # global mavproxy state
+    mpstate = MPState()
+    mpstate.console = NoConsole()
+    mpstate.status.exit = False
+    mpstate.command_map = command_map
+    mpstate.continue_mode = opts.continue_mode
 
-# global mavproxy state
-mpstate = MPState()
-mpstate.console = NoConsole()
-mpstate.status.exit = False
-mpstate.command_map = command_map
-mpstate.continue_mode = opts.continue_mode
+    if opts.speech:
+        # start the speech-dispatcher early, so it doesn't inherit any ports from
+        # modules/mavutil
+        say('Startup')
 
-if opts.speech:
-    # start the speech-dispatcher early, so it doesn't inherit any ports from
-    # modules/mavutil
-    say('Startup')
+    if not opts.master:
+        serial_list = mavutil.auto_detect_serial(preferred_list=['*FTDI*',"*Arduino_Mega_2560*", "*USB_to_UART*"])
+        if len(serial_list) == 1:
+            opts.master = [serial_list[0].device]
+        else:
+            print('''
+    Please choose a MAVLink master with --master
+    For example:
+    --master=com14
+    --master=/dev/ttyUSB0
+    --master=127.0.0.1:14550
 
-if not opts.master:
-    serial_list = mavutil.auto_detect_serial(preferred_list=['*FTDI*',"*Arduino_Mega_2560*", "*USB_to_UART*"])
-    if len(serial_list) == 1:
-        opts.master = [serial_list[0].device]
+    Auto-detected serial ports are:
+    ''')
+            for port in serial_list:
+                print("%s" % port)
+            raise NoAutoPilotError()
+
+    # container for status information
+    mpstate.status.target_system = opts.TARGET_SYSTEM
+    mpstate.status.target_component = opts.TARGET_COMPONENT
+
+    mpstate.mav_master = []
+
+    # open master link
+    for mdev in opts.master:
+        if mdev.startswith('tcp:'):
+            m = mavutil.mavtcp(mdev[4:])
+        elif mdev.find(':') != -1:
+            m = mavutil.mavudp(mdev, input=True)
+        else:
+            m = mavutil.mavserial(mdev, baud=opts.baudrate, autoreconnect=True)
+        m.mav.set_callback(master_callback, m)
+        m.linknum = len(mpstate.mav_master)
+        m.linkerror = False
+        m.link_delayed = False
+        m.last_heartbeat = 0
+        m.last_message = 0
+        m.highest_msec = 0
+        mpstate.mav_master.append(m)
+        mpstate.status.counters['MasterIn'].append(0)
+
+    # log all packets from the master, for later replay
+    open_logs()
+
+    if mpstate.continue_mode and mpstate.status.logdir != None:
+        parmfile = os.path.join(mpstate.status.logdir, 'mav.parm')
+        if os.path.exists(parmfile):
+            mpstate.mav_param.load(parmfile)
+            for m in mpstate.mav_master:
+                m.param_fetch_complete = True
+        waytxt = os.path.join(mpstate.status.logdir, 'way.txt')
+        if os.path.exists(waytxt):
+            mpstate.status.wploader.load(waytxt)
+            print("Loaded waypoints from %s" % waytxt)
+        fencetxt = os.path.join(mpstate.status.logdir, 'fence.txt')
+        if os.path.exists(fencetxt):
+            mpstate.status.fenceloader.load(fencetxt)
+            print("Loaded fence from %s" % fencetxt)
+
+    # open any mavlink UDP ports
+    for p in opts.output:
+        mpstate.mav_outputs.append(mavutil.mavlink_connection(p, baud=opts.baudrate, input=False))
+
+    if opts.sitl:
+        mpstate.sitl_output = mavutil.mavudp(opts.sitl, input=False)
+
+    mpstate.settings.numcells = opts.num_cells
+    mpstate.settings.speech = opts.speech
+    mpstate.settings.streamrate = opts.streamrate
+    mpstate.settings.streamrate2 = opts.streamrate
+
+    msg_period = mavutil.periodic_event(1.0/15)
+    param_period = mavutil.periodic_event(1)
+    heartbeat_period = mavutil.periodic_event(1)
+    battery_period = mavutil.periodic_event(0.1)
+    if mpstate.sitl_output:
+        mpstate.override_period = mavutil.periodic_event(20)
     else:
-        print('''
-Please choose a MAVLink master with --master
-For example:
---master=com14
---master=/dev/ttyUSB0
---master=127.0.0.1:14550
+        mpstate.override_period = mavutil.periodic_event(1)
+    heartbeat_check_period = mavutil.periodic_event(0.33)
 
-Auto-detected serial ports are:
-''')
-        for port in serial_list:
-            print("%s" % port)
-        sys.exit(1)
+    mpstate.rl = rline("MAV> ")
+    if opts.setup:
+        mpstate.rl.set_prompt("")
 
-# container for status information
-mpstate.status.target_system = opts.TARGET_SYSTEM
-mpstate.status.target_component = opts.TARGET_COMPONENT
+    if 'HOME' in os.environ and not opts.setup:
+        start_script = os.path.join(os.environ['HOME'], ".mavinit.scr")
+        if os.path.exists(start_script):
+            run_script(start_script)
 
-mpstate.mav_master = []
+    if opts.aircraft is not None:
+        start_script = os.path.join(opts.aircraft, "mavinit.scr")
+        if os.path.exists(start_script):
+            run_script(start_script)
+        else:
+            print("no script %s" % start_script)
 
-# open master link
-for mdev in opts.master:
-    if mdev.startswith('tcp:'):
-        m = mavutil.mavtcp(mdev[4:])
-    elif mdev.find(':') != -1:
-        m = mavutil.mavudp(mdev, input=True)
-    else:
-        m = mavutil.mavserial(mdev, baud=opts.baudrate, autoreconnect=True)
-    m.mav.set_callback(master_callback, m)
-    m.linknum = len(mpstate.mav_master)
-    m.linkerror = False
-    m.link_delayed = False
-    m.last_heartbeat = 0
-    m.last_message = 0
-    m.highest_msec = 0
-    mpstate.mav_master.append(m)
-    mpstate.status.counters['MasterIn'].append(0)
+    if opts.console:
+        process_stdin('module load console')
 
-# log all packets from the master, for later replay
-open_logs()
+    if opts.map:
+        process_stdin('module load map')
 
-if mpstate.continue_mode and mpstate.status.logdir != None:
-    parmfile = os.path.join(mpstate.status.logdir, 'mav.parm')
-    if os.path.exists(parmfile):
-        mpstate.mav_param.load(parmfile)
-        for m in mpstate.mav_master:
-            m.param_fetch_complete = True
-    waytxt = os.path.join(mpstate.status.logdir, 'way.txt')
-    if os.path.exists(waytxt):
-        mpstate.status.wploader.load(waytxt)
-        print("Loaded waypoints from %s" % waytxt)
-    fencetxt = os.path.join(mpstate.status.logdir, 'fence.txt')
-    if os.path.exists(fencetxt):
-        mpstate.status.fenceloader.load(fencetxt)
-        print("Loaded fence from %s" % fencetxt)
+    for module in opts.load_module:
+        modlist = module.split(',')
+        for mod in modlist:
+            process_stdin('module load %s' % mod)
 
-# open any mavlink UDP ports
-for p in opts.output:
-    mpstate.mav_outputs.append(mavutil.mavlink_connection(p, baud=opts.baudrate, input=False))
+    if opts.cmd is not None:
+        cmds = opts.cmd.split(';')
+        for c in cmds:
+            process_stdin(c)
 
-if opts.sitl:
-    mpstate.sitl_output = mavutil.mavudp(opts.sitl, input=False)
-
-mpstate.settings.numcells = opts.num_cells
-mpstate.settings.speech = opts.speech
-mpstate.settings.streamrate = opts.streamrate
-mpstate.settings.streamrate2 = opts.streamrate
-
-msg_period = mavutil.periodic_event(1.0/15)
-param_period = mavutil.periodic_event(1)
-heartbeat_period = mavutil.periodic_event(1)
-battery_period = mavutil.periodic_event(0.1)
-if mpstate.sitl_output:
-    mpstate.override_period = mavutil.periodic_event(20)
-else:
-    mpstate.override_period = mavutil.periodic_event(1)
-heartbeat_check_period = mavutil.periodic_event(0.33)
-
-mpstate.rl = rline("MAV> ")
-if opts.setup:
-    mpstate.rl.set_prompt("")
-
-if 'HOME' in os.environ and not opts.setup:
-    start_script = os.path.join(os.environ['HOME'], ".mavinit.scr")
-    if os.path.exists(start_script):
-        run_script(start_script)
-
-if opts.aircraft is not None:
-    start_script = os.path.join(opts.aircraft, "mavinit.scr")
-    if os.path.exists(start_script):
-        run_script(start_script)
-    else:
-        print("no script %s" % start_script)
-
-if opts.console:
-    process_stdin('module load console')
-
-if opts.map:
-    process_stdin('module load map')
-
-for module in opts.load_module:
-    modlist = module.split(',')
-    for mod in modlist:
-        process_stdin('module load %s' % mod)
-
-if opts.cmd is not None:
-    cmds = opts.cmd.split(';')
-    for c in cmds:
-        process_stdin(c)
-
-# run main loop as a thread
-mpstate.status.thread = threading.Thread(target=main_loop)
-mpstate.status.thread.daemon = True
-mpstate.status.thread.start()
-
+    # run main loop as a thread
+    mpstate.status.thread = threading.Thread(target=main_loop)
+    mpstate.status.thread.daemon = True
+    mpstate.status.thread.start()
+except NoAutoPilotError: 
+    print "no autopilot detected"
