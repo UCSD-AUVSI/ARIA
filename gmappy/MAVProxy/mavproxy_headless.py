@@ -391,7 +391,12 @@ def load_waypoints_from_array(waypoints):
   print "Loading waypoints from the array"
   def convert(waypoint,index):
     try:
-      converted_message = mavlink.MAVLink_waypoint_message(
+      print "Target System",mpstate.status.target_system
+      print "Target Component",mpstate.status.target_component
+      print "Lat",float(waypoint["latitude"])
+      print "Lon",float(waypoint["longitude"])
+      print "Alt",float(waypoint["altitude"])
+      converted_message = mavlink.MAVLink_mission_item_message(
                                               mpstate.status.target_system,
                                               mpstate.status.target_component,
                                               index, # seq
@@ -408,7 +413,7 @@ def load_waypoints_from_array(waypoints):
                                               float(waypoint["altitude"]))
     except:
       e = sys.exc_info()[0]
-      print e
+      print "Error: ",e
     return converted_message
 
   mpstate.status.wploader.target_system = mpstate.status.target_system
