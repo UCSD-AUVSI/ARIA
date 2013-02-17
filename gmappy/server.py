@@ -43,4 +43,4 @@ def getFlightPlan():
 
     mavproxy_headless.save_waypoints("output.txt")
 
-    return list
+    return "OK"

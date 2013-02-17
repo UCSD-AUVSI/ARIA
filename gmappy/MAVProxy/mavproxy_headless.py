@@ -100,7 +100,7 @@ class MPStatus(object):
             self.rc_elevator = 0
             self.rc_throttle = 0
             self.rc_rudder   = 0
-        self.gps	 = None
+        self.gps     = None
         self.msgs = {}
         self.msg_count = {}
         self.counters = {'MasterIn' : [], 'MasterOut' : 0, 'FGearIn' : 0, 'FGearOut' : 0, 'Slave' : 0}
@@ -368,6 +368,7 @@ def cmd_fbwa(args):
 
 def process_waypoint_request(m, master):
     '''process a waypoint request from the master'''
+    print "Processing a waypoing request"
     if (not mpstate.status.loading_waypoints or
         time.time() > mpstate.status.loading_waypoint_lasttime + 10.0):
         mpstate.status.loading_waypoints = False
@@ -387,6 +388,7 @@ def process_waypoint_request(m, master):
         mpstate.console.writeln("Sent all %u waypoints" % mpstate.status.wploader.count())
 
 def load_waypoints_from_array(waypoints):
+  print "Loading waypoints from the array"
   def convert(waypoint,index):
     try:
       converted_message = mavlink.MAVLink_waypoint_message(
@@ -1163,6 +1165,8 @@ def master_callback(m, master):
 
     mtype = m.get_type()
 
+    print "Callback Type: ",mtype
+
     # and log them
     if mtype != 'BAD_DATA' and mpstate.logqueue:
         # put link number in bottom 2 bits, so we can analyse packet
@@ -1401,8 +1405,8 @@ def process_master(m):
         sys.stdout.flush()
         return
 
-    if m.first_byte and opts.auto_protocol:
-        m.auto_mavlink_version(s)
+    # if m.first_byte and opts.auto_protocol:
+    #    m.auto_mavlink_version(s)
     msgs = m.mav.parse_buffer(s)
     if msgs:
         for msg in msgs:
@@ -1885,6 +1889,3 @@ mpstate.status.thread = threading.Thread(target=main_loop)
 mpstate.status.thread.daemon = True
 mpstate.status.thread.start()
 
-# Sleep Forever
-#while True:
-#  time.sleep(1)

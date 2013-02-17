@@ -365,6 +365,7 @@ def cmd_fbwa(args):
 
 def process_waypoint_request(m, master):
     '''process a waypoint request from the master'''
+    print "Loading waypoint request from master"
     if (not mpstate.status.loading_waypoints or
         time.time() > mpstate.status.loading_waypoint_lasttime + 10.0):
         mpstate.status.loading_waypoints = False
