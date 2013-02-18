@@ -11,22 +11,7 @@ def setFlightPlan():
 
     index = 0
 
-    home_lat = "home[latitude]"
-    home_lng = "home[longitude]"
-    home_alt = "home[altitude]"
-    home_type = "home[type]"
-    home_dur = "home[duration]"
-
-    print "Home Location"
-    print "Home latitude: " + str(request.form[home_lat])
-    print "Home longitude: " + str(request.form[home_lng])
-    print "Home altitude: " + str(request.form[home_alt])
-    print "Home type: " + str(request.form[home_type])
-    print "Home duration: " + str(request.form[home_dur])
-    print "\n"
-
     while True:
-
         lat = "data[" + str(index) +"][latitude]"
         lng = "data["+ str(index) +"][longitude]"
         typeField = "data[" + str(index) + "][type]"
@@ -34,7 +19,6 @@ def setFlightPlan():
         duration = "data[" + str(index) + "][duration]"
         if lat in request.form.keys():
             plan += [{
-
                 "latitude": request.form[lat],
                 "longitude": request.form[lng],
                 "altitude" : request.form[altitude],
@@ -64,19 +48,30 @@ def setFlightPlan():
 
 @app.route("/home", methods=['POST'])
 def setHome():
-    lat=10 #float(request.form["lat"])
-    lng=-10 #float(request.form["lng"])
-    alt=0 #float(request.form["alt"])
+
+    home_lat = request.form["home[latitude]"]
+    home_lng = request.form["home[longitude]"]
+    home_alt = request.form["home[altitude]"]
+    home_type = request.form["home[type]"]
+    home_dur = request.form["home[duration]"]
+
+    print "Home Location"
+    print "Home latitude: " + home_lat
+    print "Home longitude: " + home_lng
+    print "Home altitude: " + home_alt
+    print "Home type: " + home_type
+    print "Home duration: " + home_dur
+    print "\n"
 
     print "asdf"
     try:
-
         mavproxy_headless.master().command_long_send(mpstate.status.target_system, 
                                                 mpstate.status.target_component,
                                                 MAV_CMD_DO_SET_HOME,
                                                 1, #comfirmation
-                                                lat, lng, alt)
+                                                home_lat, home_lng, home_alt)
     except:
         print "except"
         print sys.exec_info()[0]
+
     print "1234"

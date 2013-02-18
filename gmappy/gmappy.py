@@ -54,6 +54,7 @@ class Gmappy(object):
         self._js = self._start_initialize()
 
         self._js += self._setup_map()
+        self._js += self._setup_home_marker()
         self._js += self._setup_path()
         self._js += self._setup_marker()
 
@@ -118,6 +119,19 @@ class Gmappy(object):
             window.map = new google.maps.Map(document.getElementById("map_canvas"), mapOptions);
         """
         return js
+
+    def _setup_home_marker(self):
+      js = """
+          var image = "bighouse.png"
+          window.homeMarker = new google.maps.Marker({
+              position : new google.maps.LatLng(0,0),
+              title : "Home",
+              map : window.map,
+              draggable : true,
+              icon: image
+          });
+      """
+      return js
 
     def _setup_path(self):
         js = ""
@@ -402,7 +416,8 @@ class Gmappy(object):
                 contextmenu = document.createElement("div");
                 contextmenu.className = "contextmenu";
                 contextmenu.innerHTML =  "<button type=\\"button\\" id=\\"setHome\\" class=\\"btn\\">Set Home Location</button>";
-                contextmenu.innerHTML += "<button type=\\"button\\" id=\\"sendCoord\\" class=\\"btn\\">Send Coordinates</button>";
+                contextmenu.innerHTML += "<button type=\\"button\\" id=\\"sendFlightPlan\\" class=\\"btn\\">Send Flightplan</button>";
+                contextmenu.innerHTML += "<button type=\\"button\\" id=\\"sendHome\\" class=\\"btn\\">Send Home Location</button>";
                 contextmenu.innerHTML += "<button type=\\"button\\" id=\\"refresh\\" class=\\"btn\\">Refresh</button>";
                 contextmenu.innerHTML += "<button type=\\"button\\" id=\\"delPoint\\" class=\\"btn\\">Delete Waypoint</button>";
                 contextmenu.innerHTML += "<button type=\\"button\\" id=\\"delAllPoints\\" class=\\"btn\\">Delete All Waypoints</button>";
@@ -417,29 +432,35 @@ class Gmappy(object):
                 window.isContextMenuOpen = true;
 
                 $("#setHome").click({param1: position},setHome);
-                $("#sendCoord").click(sendCoordinates);
+                $("#sendFlightPlan").click(sendFlightPlan);
+                $("#sendHome").click(sendHomeLocation);
                 $("#refresh").click(refresh);
                 $("#delPoint").click({param1: position},deletePoint);
                 $("#delAllPoints").click(deleteAllPoints);
 
-                //TODO: is this necessary?
-                //contextmenu.style.visibility = "visible";
             } // end showContext menu()
 
             function setHome(event) {
                 var position = event.data.param1;
-                window.home = position;
 
-                window.homeMarker = new google.maps.Marker({
-                    map: window.map,
-                    position: new google.maps.LatLng(position.lat(), position.lng()),
-                    title: "Home"
-                });
+                if(window.homeMarker == null) {
+                    var image = "bighouse.png";
+                    window.homeMarker = new google.maps.Marker({
+                        map: window.map,
+                        position: new google.maps.LatLng(position.lat(), position.lng()),
+                        title: "Home",
+                        draggable: true,
+                        icon: image
+                    });
+                }
+                else {
+                    window.homeMarker.setPosition(new google.maps.LatLng(position.lat(), position.lng()));
+                }
 
                 $('.contextmenu').remove();
-            }
+            } // end setHome()
 
-            function sendCoordinates() {
+            function sendFlightPlan() {
                 if(window.path.getPath().getLength() == 0) {
                     alert("You do not have a path to send!");
                     $('.contextmenu').remove();
@@ -455,22 +476,31 @@ class Gmappy(object):
                         duration: durationArray[i]
                     });
                 }
+                
+                $.post("http://localhost:5000/flightplan",
+                {
+                    "data" : coordArray
+                });
+                
+                $(".contextmenu").remove();
+            } // end sendFlightPlaninates()
 
+            function sendHomeLocation() {
                 var homeloc = {
-                    latitude: window.home.lat(),
-                    longitude: window.home.lng(),
+                    latitude: window.homeMarker.getPosition().lat(),
+                    longitude: window.homeMarker.getPosition().lng(),
                     altitude: 0,
                     type: "Land",
                     duration: 0
                 };
 
-                $.post("http://localhost:5000",
+                $.post("http://localhost:5000/home",
                 {
-                    "data" : coordArray,
-                    "home" : homeloc
+                    "home"  : homeloc
                 });
+
                 $(".contextmenu").remove();
-            } // end sendCoordinates()
+            } // end sendHomeLocation()
 
             function refresh() {
                 location.reload();
