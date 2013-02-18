@@ -11,7 +11,7 @@ import sys, os, struct, math, time, socket
 import fnmatch, errno, threading
 import serial, Queue, select
 import time
-import mavlink
+import mavlinkv10 as mavlink
 from errors import NoAutoPilotError
 from noconsole import NoConsole
 
