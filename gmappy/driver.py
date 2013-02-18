@@ -47,7 +47,7 @@ if __name__=="__main__":
 
     marker_options = {
         "position"  : Coordinate(latitude=0, longitude=0, altitude=10, ctype="waypoint", duration=0),
-        "title"     : "marker 1"
+        "title"     : "current location"
     }
     marker = Marker(options = marker_options)
 

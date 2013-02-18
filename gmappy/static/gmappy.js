@@ -60,7 +60,7 @@
         
                     position : new google.maps.LatLng(0,0),
                 
-                    title : 'marker 1',
+                    title : 'current location',
                 
             }; // end markerOptions
             window.marker = new google.maps.Marker(markerOptions);
@@ -259,7 +259,8 @@
                 var position = event.latLng;
                 contextmenu = document.createElement("div");
                 contextmenu.className = "contextmenu";
-                contextmenu.innerHTML = "<button type=\"button\" id=\"sendCoord\" class=\"btn\">Send Coordinates</button>";
+                contextmenu.innerHTML =  "<button type=\"button\" id=\"setHome\" class=\"btn\">Set Home Location</button>";
+                contextmenu.innerHTML += "<button type=\"button\" id=\"sendCoord\" class=\"btn\">Send Coordinates</button>";
                 contextmenu.innerHTML += "<button type=\"button\" id=\"refresh\" class=\"btn\">Refresh</button>";
                 contextmenu.innerHTML += "<button type=\"button\" id=\"delPoint\" class=\"btn\">Delete Waypoint</button>";
                 contextmenu.innerHTML += "<button type=\"button\" id=\"delAllPoints\" class=\"btn\">Delete All Waypoints</button>";
@@ -273,6 +274,7 @@
 
                 window.isContextMenuOpen = true;
 
+                $("#setHome").click({param1: position},setHome);
                 $("#sendCoord").click(sendCoordinates);
                 $("#refresh").click(refresh);
                 $("#delPoint").click({param1: position},deletePoint);
@@ -281,6 +283,19 @@
                 //TODO: is this necessary?
                 //contextmenu.style.visibility = "visible";
             } // end showContext menu()
+
+            function setHome(event) {
+                var position = event.data.param1;
+                window.home = position;
+
+                window.homeMarker = new google.maps.Marker({
+                    map: window.map,
+                    position: new google.maps.LatLng(position.lat(), position.lng()),
+                    title: "Home"
+                });
+
+                $('.contextmenu').remove();
+            }
 
             function sendCoordinates() {
                 if(window.path.getPath().getLength() == 0) {
@@ -298,9 +313,19 @@
                         duration: durationArray[i]
                     });
                 }
+
+                var homeloc = {
+                    latitude: window.home.lat(),
+                    longitude: window.home.lng(),
+                    altitude: 0,
+                    type: "Land",
+                    duration: 0
+                };
+
                 $.post("http://localhost:5000",
                 {
-                    "data" : coordArray
+                    "data" : coordArray,
+                    "home" : homeloc
                 });
                 $(".contextmenu").remove();
             } // end sendCoordinates()
